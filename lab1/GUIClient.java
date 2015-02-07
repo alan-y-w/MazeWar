@@ -28,13 +28,20 @@ import java.awt.event.KeyEvent;
  */
 
 public class GUIClient extends LocalClient implements KeyListener {
-
         /**
          * Create a GUI controlled {@link LocalClient}.  
          */
+		//alanwu: ID to identify client
+		private int _client_ID;
+	
         public GUIClient(String name) {
                 super(name);
         }
+		
+		public GUIClient(String name, int ID) {
+            super(name);
+            this._client_ID = ID;
+		}
         
         /**
          * Handle a key press.
@@ -42,24 +49,34 @@ public class GUIClient extends LocalClient implements KeyListener {
          */
         public void keyPressed(KeyEvent e) {
                 // If the user pressed Q, invoke the cleanup code and quit. 
+        		// alanwu: send events to server, move after the server has broadcasted 
+        		// the moves
                 if((e.getKeyChar() == 'q') || (e.getKeyChar() == 'Q')) {
                         Mazewar.quit();
                 // Up-arrow moves forward.
                 } else if(e.getKeyCode() == KeyEvent.VK_UP) {
-                        forward();
+                		SendPacket(new Packet(this._client_ID, Packet.Event.FORWARD));
+                		
+                        //forward();
                 // Down-arrow moves backward.
                 } else if(e.getKeyCode() == KeyEvent.VK_DOWN) {
-                        backup();
+                		SendPacket(new Packet(this._client_ID, Packet.Event.BACKWARD));
+                        //backup();
                 // Left-arrow turns left.
                 } else if(e.getKeyCode() == KeyEvent.VK_LEFT) {
-                        turnLeft();
+                		SendPacket(new Packet(this._client_ID, Packet.Event.TURNLEFT));
+                        //turnLeft();
                 // Right-arrow turns right.
                 } else if(e.getKeyCode() == KeyEvent.VK_RIGHT) {
-                        turnRight();
+                		SendPacket(new Packet(this._client_ID, Packet.Event.TURNRIGHT));
+                        //turnRight();
                 // Spacebar fires.
                 } else if(e.getKeyCode() == KeyEvent.VK_SPACE) {
-                        fire();
+                		SendPacket(new Packet(this._client_ID, Packet.Event.FIRE));
+                        //fire();
                 }
+                
+                // TODO: alanwu: add code to listen to server's broadcast
         }
         
         /**

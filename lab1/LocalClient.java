@@ -1,3 +1,13 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 /*
 Copyright (C) 2004 Geoffrey Alan Washburn
     
@@ -29,7 +39,10 @@ USA.
 
 
 public abstract class LocalClient extends Client {
-
+		
+		private Socket _clientSocket;
+		private ObjectInputStream _inputStream;	
+		private ObjectOutputStream _outputStream;
         /** 
          * Create a {@link Client} local to this machine.
          * @param name The name of this {@link Client}.
@@ -37,9 +50,48 @@ public abstract class LocalClient extends Client {
         public LocalClient(String name) {
                 super(name);
                 assert(name != null);
+                this._clientSocket = null;
+                this._inputStream = null;
+                this._outputStream = null;
         }
+        
 
         /**
          * Fill in here??
+         * TODO: Add code to connect to the server, send packet and disconnect
          */
+        public void ConnectToServer(String hostName, int portNumber)
+        {
+        	 try {
+        			 	this._clientSocket = new Socket(hostName, portNumber);
+        			 	this._outputStream = new ObjectOutputStream(this._clientSocket.getOutputStream());
+        	         	this._inputStream = new ObjectInputStream(this._clientSocket.getInputStream());
+        			 
+//        			 PrintWriter out =
+//        	                new PrintWriter(echoSocket.getOutputStream(), true);
+//        	            BufferedReader in =
+//        	                new BufferedReader(
+//        	                    new InputStreamReader(echoSocket.getInputStream()));
+//        	            BufferedReader stdIn =
+//        	                new BufferedReader(
+//        	                    new InputStreamReader(System.in))
+        	        } catch (UnknownHostException e) {
+        	            System.err.println("Don't know about host " + hostName);
+        	            System.exit(1);
+        	        } catch (IOException e) {
+        	            System.err.println("Couldn't get I/O for the connection to " +
+        	                hostName);
+        	            System.exit(1);
+        	        } 
+        }
+        
+        public void SendPacket(Packet packet)
+        {
+        	try {
+        		this._outputStream.writeObject(packet);
+        	} catch (IOException e) {
+        		System.err.println("Cannot send packet to server");
+        		e.printStackTrace();
+        	}
+        }
 }

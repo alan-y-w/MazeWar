@@ -1,6 +1,9 @@
 Cell.class : Cell.java
 Cell.class : Direction.java
 Cell.class : Direction.class
+Packet.class : Packet.java
+Packet.class : ClientEvent.java
+packet.class : ClientEvent.class
 Client.class : Client.java
 Client.class : MazeListener.java
 Client.class : MazeListener.class

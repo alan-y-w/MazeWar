@@ -75,6 +75,8 @@ GUIClient.class : Direction.java
 GUIClient.class : Direction.class
 GUIClient.class : ClientEvent.java
 GUIClient.class : ClientEvent.class
+GUIClient.class : Packet.java
+GUIClient.class : Packet.class
 LocalClient.class : LocalClient.java
 LocalClient.class : ClientEvent.java
 LocalClient.class : ClientEvent.class
@@ -92,6 +94,8 @@ LocalClient.class : Point.java
 LocalClient.class : Point.class
 LocalClient.class : Direction.java
 LocalClient.class : Direction.class
+LocalClient.class : Packet.java
+LocalClient.class : Packet.class
 Maze.class : Maze.java
 Maze.class : MazeListener.java
 Maze.class : MazeListener.class
@@ -345,3 +349,8 @@ ScoreTableModel.class : Direction.class
 ScoreTableModel.class : ClientEvent.java
 ScoreTableModel.class : ClientEvent.class
 SortedMultiSet.class : SortedMultiSet.java
+
+MazewarServerHandlerThread.class : MazewarServerHandlerThread.java
+MazewarServer.class : MazewarServer.java
+MazewarServer.class : MazewarServerHandlerThread.java
+MazewarServer.class : MazewarServerHandlerThread.class

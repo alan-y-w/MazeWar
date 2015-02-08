@@ -91,7 +91,7 @@ public abstract class LocalClient extends Client implements Runnable{
         
         public void run()
         {	
-        	Packet packet;
+        	Packet packet = null;
         	//alanwu: TODO: listen to the server packets and pass moves to 
         	// itself as well as other Remote clients
         	while (true)
@@ -107,6 +107,32 @@ public abstract class LocalClient extends Client implements Runnable{
         		// enQ
         		
         		// implement it to the right client
+        		if (packet != null)
+        		{
+        			Client _client = (Client) Client.DictOfClients.get(packet.GetName());
+        			switch (packet.GetEvent())
+        			{	
+        			case FORWARD:
+        				_client.forward();
+        				break;
+        			case BACKWARD:
+        				_client.backup();
+        				break;
+        			case TURNLEFT:
+        				_client.turnLeft();
+        				break;
+        			case TURNRIGHT:
+        				_client.turnRight();
+        				break;
+        			case FIRE:
+        				_client.fire();
+        				break;
+					default:
+						break;
+        				
+        			}
+        		}
+        		
         		
         	}
         }

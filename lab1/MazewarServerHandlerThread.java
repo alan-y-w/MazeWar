@@ -41,6 +41,7 @@ public class MazewarServerHandlerThread extends Thread {
 					// wait for next packet
 					continue;
 				}*/
+				System.out.println("From Client: " + packetFromClient.GetClientEvent().GetEventCode());
 				toClient.writeObject(packetFromClient);
 
 				// wait for next packet

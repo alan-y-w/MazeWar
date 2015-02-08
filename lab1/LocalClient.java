@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+
 /*
 Copyright (C) 2004 Geoffrey Alan Washburn
     
@@ -38,11 +39,12 @@ USA.
  */
 
 
-public abstract class LocalClient extends Client {
+public abstract class LocalClient extends Client implements Runnable{
 		
 		private Socket _clientSocket;
 		private ObjectInputStream _inputStream;	
 		private ObjectOutputStream _outputStream;
+		private Thread _t;
         /** 
          * Create a {@link Client} local to this machine.
          * @param name The name of this {@link Client}.
@@ -66,15 +68,7 @@ public abstract class LocalClient extends Client {
         			 	this._clientSocket = new Socket(hostName, portNumber);
         			 	this._outputStream = new ObjectOutputStream(this._clientSocket.getOutputStream());
         	         	this._inputStream = new ObjectInputStream(this._clientSocket.getInputStream());
-        			 
-//        			 PrintWriter out =
-//        	                new PrintWriter(echoSocket.getOutputStream(), true);
-//        	            BufferedReader in =
-//        	                new BufferedReader(
-//        	                    new InputStreamReader(echoSocket.getInputStream()));
-//        	            BufferedReader stdIn =
-//        	                new BufferedReader(
-//        	                    new InputStreamReader(System.in))
+        	         	
         	        } catch (UnknownHostException e) {
         	            System.err.println("Don't know about host " + hostName);
         	            System.exit(1);
@@ -93,5 +87,36 @@ public abstract class LocalClient extends Client {
         		System.err.println("Cannot send packet to server");
         		e.printStackTrace();
         	}
+        }
+        
+        public void run()
+        {	
+        	Packet packet;
+        	//alanwu: TODO: listen to the server packets and pass moves to 
+        	// itself as well as other Remote clients
+        	while (true)
+        	{
+        		try {
+        			packet = (Packet) this._inputStream.readObject();
+        		} catch (ClassNotFoundException cn) {
+                    cn.printStackTrace();
+                } catch (IOException e) {
+					e.printStackTrace();
+				}
+        		
+        		// enQ
+        		
+        		// implement it to the right client
+        		
+        	}
+        }
+        
+        public void start ()
+        {
+           if (_t == null)
+           {
+              _t = new Thread (this, "ServerListener");
+              _t.start ();
+           }
         }
 }

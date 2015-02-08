@@ -31,17 +31,10 @@ public class GUIClient extends LocalClient implements KeyListener {
         /**
          * Create a GUI controlled {@link LocalClient}.  
          */
-		//alanwu: ID to identify client
-		private int _client_ID;
 	
         public GUIClient(String name) {
                 super(name);
         }
-		
-		public GUIClient(String name, int ID) {
-            super(name);
-            this._client_ID = ID;
-		}
         
         /**
          * Handle a key press.
@@ -55,28 +48,26 @@ public class GUIClient extends LocalClient implements KeyListener {
                         Mazewar.quit();
                 // Up-arrow moves forward.
                 } else if(e.getKeyCode() == KeyEvent.VK_UP) {
-                		SendPacket(new Packet(this._client_ID, Packet.Event.FORWARD));
+                		SendPacket(new Packet(this.getName(), Packet.Event.FORWARD));
                 		
                         //forward();
                 // Down-arrow moves backward.
                 } else if(e.getKeyCode() == KeyEvent.VK_DOWN) {
-                		SendPacket(new Packet(this._client_ID, Packet.Event.BACKWARD));
+                		SendPacket(new Packet(this.getName(), Packet.Event.BACKWARD));
                         //backup();
                 // Left-arrow turns left.
                 } else if(e.getKeyCode() == KeyEvent.VK_LEFT) {
-                		SendPacket(new Packet(this._client_ID, Packet.Event.TURNLEFT));
+                		SendPacket(new Packet(this.getName(), Packet.Event.TURNLEFT));
                         //turnLeft();
                 // Right-arrow turns right.
                 } else if(e.getKeyCode() == KeyEvent.VK_RIGHT) {
-                		SendPacket(new Packet(this._client_ID, Packet.Event.TURNRIGHT));
+                		SendPacket(new Packet(this.getName(), Packet.Event.TURNRIGHT));
                         //turnRight();
                 // Spacebar fires.
                 } else if(e.getKeyCode() == KeyEvent.VK_SPACE) {
-                		SendPacket(new Packet(this._client_ID, Packet.Event.FIRE));
+                		SendPacket(new Packet(this.getName(), Packet.Event.FIRE));
                         //fire();
                 }
-                
-                // TODO: alanwu: add code to listen to server's broadcast
         }
         
         /**

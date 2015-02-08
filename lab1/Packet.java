@@ -4,7 +4,7 @@ public class Packet implements Serializable{
 	//TODO: implement ECHO packet, similar to lab 1
 	
 	// ID of the client
-	private int _ID;
+	private String _name;
 	
 	// event of the package
 	public enum Event
@@ -33,13 +33,13 @@ public class Packet implements Serializable{
 	public Packet()
 	{
 		this._event = null;
-		this._ID = 0;
+		this._name = "";
 	}
 	
-	public Packet(int ID, Event event)
+	public Packet(String name, Event event)
 	{
 		this._event = event;
-		this._ID = ID;
+		this._name = name;
 	}
 	
 	public Event GetEvent()

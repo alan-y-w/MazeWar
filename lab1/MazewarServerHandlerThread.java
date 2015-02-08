@@ -54,10 +54,6 @@ public class MazewarServerHandlerThread extends Thread {
 					toClient.writeObject(packetToClient);
 					break;
 				}*/
-				
-				/* if code comes here, there is an error in the packet */
-				System.err.println("ERROR: Unknown ECHO_* packet!!");
-				System.exit(-1);
 			}
 			
 			/* cleanup when client exits */

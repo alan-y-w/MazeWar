@@ -48,24 +48,24 @@ public class GUIClient extends LocalClient implements KeyListener {
                         Mazewar.quit();
                 // Up-arrow moves forward.
                 } else if(e.getKeyCode() == KeyEvent.VK_UP) {
-                		SendPacket(new Packet(this.getName(), Packet.Event.FORWARD));
+                		SendPacket(new Packet(this.getName(), ClientEvent.moveForward));
                 		
                         //forward();
                 // Down-arrow moves backward.
                 } else if(e.getKeyCode() == KeyEvent.VK_DOWN) {
-                		SendPacket(new Packet(this.getName(), Packet.Event.BACKWARD));
+                		SendPacket(new Packet(this.getName(), ClientEvent.moveBackward));
                         //backup();
                 // Left-arrow turns left.
                 } else if(e.getKeyCode() == KeyEvent.VK_LEFT) {
-                		SendPacket(new Packet(this.getName(), Packet.Event.TURNLEFT));
+                		SendPacket(new Packet(this.getName(), ClientEvent.turnLeft));
                         //turnLeft();
                 // Right-arrow turns right.
                 } else if(e.getKeyCode() == KeyEvent.VK_RIGHT) {
-                		SendPacket(new Packet(this.getName(), Packet.Event.TURNRIGHT));
+                		SendPacket(new Packet(this.getName(), ClientEvent.turnRight));
                         //turnRight();
                 // Spacebar fires.
                 } else if(e.getKeyCode() == KeyEvent.VK_SPACE) {
-                		SendPacket(new Packet(this.getName(), Packet.Event.FIRE));
+                		SendPacket(new Packet(this.getName(), ClientEvent.fire));
                         //fire();
                 }
         }

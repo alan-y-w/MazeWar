@@ -75,5 +75,8 @@ public class ClientEvent {
          */
         public static final ClientEvent fire = new ClientEvent(FIRE);
         
-        
+        public int GetEventCode()
+        {
+        	return this.event;
+        }
 }

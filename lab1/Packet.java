@@ -7,13 +7,8 @@ public class Packet implements Serializable{
 	private String _name;
 	
 	// event of the package
-	public static enum Event
-	{	
-		// TODO: add projectile moves
-		QUIT, FORWARD, BACKWARD, TURNLEFT, TURNRIGHT, FIRE	
-		
-	}
-	private Event _event; 
+
+	private ClientEvent _event; 
 	
 	public Packet()
 	{
@@ -21,13 +16,13 @@ public class Packet implements Serializable{
 		this._name = "";
 	}
 	
-	public Packet(String name, Event event)
+	public Packet(String name, ClientEvent event)
 	{
 		this._event = event;
 		this._name = name;
 	}
 	
-	public Event GetEvent()
+	public ClientEvent GetClientEvent()
 	{
 		return this._event;
 	}

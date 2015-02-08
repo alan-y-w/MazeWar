@@ -1,6 +1,6 @@
 import java.net.*;
 import java.io.*;
-import java.util;
+import java.util.*;
 
 public class MazewarServer {
 
@@ -8,8 +8,9 @@ public class MazewarServer {
     //many clients
 //dequeue and broadcast
 
-    int portNum = 4555;
-    String hostName = "localhost"
+    static int portNum = 4555;
+    String hostName = "localhost";
+    
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;
         boolean listening = true;
@@ -26,7 +27,7 @@ public class MazewarServer {
             System.exit(-1);
         }*/
 
-        serverSocket = new ServerSocket(hostName, portNum);
+        serverSocket = new ServerSocket(portNum);
         while (listening) {
         	new MazewarServerHandlerThread(serverSocket.accept()).start();
         }

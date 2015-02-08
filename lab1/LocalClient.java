@@ -110,21 +110,21 @@ public abstract class LocalClient extends Client implements Runnable{
         		if (packet != null)
         		{
         			Client _client = (Client) Client.DictOfClients.get(packet.GetName());
-        			switch (packet.GetEvent())
+        			switch (packet.GetClientEvent().GetEventCode())
         			{	
-        			case FORWARD:
+        			case 0:
         				_client.forward();
         				break;
-        			case BACKWARD:
+        			case 1:
         				_client.backup();
         				break;
-        			case TURNLEFT:
+        			case 2:
         				_client.turnLeft();
         				break;
-        			case TURNRIGHT:
+        			case 3:
         				_client.turnRight();
         				break;
-        			case FIRE:
+        			case 4:
         				_client.fire();
         				break;
 					default:

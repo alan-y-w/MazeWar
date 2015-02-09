@@ -1,35 +1,34 @@
 import java.net.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MazewarServer {
-
     //enqueue - multithreaded since
     //many clients
-//dequeue and broadcast
+	//dequeue and broadcast
 
-    static int portNum = 4555;
-    String hostName = "localhost";
+    private static int portNum = 4555;
+    private String hostName = "localhost";
+    
+    protected static ArrayList <ObjectInputStream> _listInputs = new ArrayList();
+    protected static ArrayList <ObjectOutputStream> _listOutputs = new ArrayList();
+    protected static Queue<Packet> _eventQ = new ConcurrentLinkedQueue(); 
     
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;
         boolean listening = true;
 
-        /*try {
-        	if(args.length == 1) {
-        		serverSocket = new ServerSocket(Integer.parseInt(args[0]));
-        	} else {
-        		System.err.println("ERROR: Invalid arguments!");
-        		System.exit(-1);
-        	}
-        } catch (IOException e) {
-            System.err.println("ERROR: Could not listen on port!");
-            System.exit(-1);
-        }*/
-
         serverSocket = new ServerSocket(portNum);
         while (listening) {
-        	new MazewarServerHandlerThread(serverSocket.accept()).start();
+        	Socket new_socket = serverSocket.accept();
+        	
+        	ObjectInputStream in_stream = new ObjectInputStream(new_socket.getInputStream());
+        	ObjectOutputStream out_stream = new ObjectOutputStream(new_socket.getOutputStream());
+        	
+        	_listInputs.add(in_stream);
+        	_listOutputs.add(out_stream);
+        	new MazewarServerReceive(in_stream).start();
         }
 
         serverSocket.close();

@@ -353,7 +353,13 @@ ScoreTableModel.class : ClientEvent.java
 ScoreTableModel.class : ClientEvent.class
 SortedMultiSet.class : SortedMultiSet.java
 
-MazewarServerHandlerThread.class : MazewarServerHandlerThread.java
+MazewarServerReceive.class : MazewarServerReceive.java
 MazewarServer.class : MazewarServer.java
-MazewarServer.class : MazewarServerHandlerThread.java
-MazewarServer.class : MazewarServerHandlerThread.class
+MazewarServer.class : MazewarServerBroadcast.java
+MazewarServer.class : MazewarServerBroadcast.class
+MazewarServer.class : MazewarServerReceive.java
+MazewarServer.class : MazewarServerReceive.class
+
+MazewarServerBroadcast.class : MazewarServerBroadcast.java
+MazewarServerBroadcast.class : MazewarServer.java
+MazewarServerBroadcast.class : MazewarServer.class

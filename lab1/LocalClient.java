@@ -64,6 +64,8 @@ public abstract class LocalClient extends Client implements Runnable{
          */
         public void ConnectToServer(String hostName, int portNumber)
         {
+        	Packet packet = null;
+        	
         	 try {
         			 	this._clientSocket = new Socket(hostName, portNumber);
         			 	this._outputStream = new ObjectOutputStream(this._clientSocket.getOutputStream());
@@ -77,6 +79,22 @@ public abstract class LocalClient extends Client implements Runnable{
         	                hostName);
         	            System.exit(1);
         	        } 
+        	 
+        	 // alanwu: wait for a game start signal from the server
+//        	 while (true)
+//        	 {
+//        		 try {
+//         			packet = (Packet) this._inputStream.readObject();
+//         		} catch (ClassNotFoundException cn) {
+//                     cn.printStackTrace();
+//                } catch (IOException e) {
+// 					e.printStackTrace();
+// 				}
+//        		if (packet != null)
+//        		{	
+//        			break;
+//        		}
+//        	 }
         }
         
         public void SendPacket(Packet packet)
@@ -93,7 +111,7 @@ public abstract class LocalClient extends Client implements Runnable{
         public void run()
         {	
         	Packet packet = null;
-        	//alanwu: TODO: listen to the server packets and pass moves to 
+        	//alanwu: listen to the server packets and pass moves to 
         	// itself as well as other Remote clients
         	while (true)
         	{

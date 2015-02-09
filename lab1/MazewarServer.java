@@ -15,8 +15,6 @@ public class MazewarServer {
     protected static ArrayList <ObjectOutputStream> _listOutputs = new ArrayList();
     protected static Queue<Packet> _eventQ = new ConcurrentLinkedQueue(); 
     
-    
-    
     public static void main(String[] args) throws IOException 
     {
         ServerSocket serverSocket = null;
@@ -36,6 +34,8 @@ public class MazewarServer {
         	_listOutputs.add(out_stream);
         	new MazewarServerReceive(in_stream).start();
         }
+        
+        
 
         serverSocket.close();
     }

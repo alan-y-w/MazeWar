@@ -17,10 +17,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,
 USA.
 */
   
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Iterator;
-
 import java.util.*;
 
 /**
@@ -29,7 +25,7 @@ import java.util.*;
  * @version $Id: Client.java 343 2004-01-24 03:43:45Z geoffw $
  */
 public abstract class Client {
-		public static Hashtable DictOfClients = new Hashtable();
+		public static Hashtable<String, Client> DictOfClients = new Hashtable<String, Client>();
         /**
          * Register this {@link Client} as being contained by the specified
          * {@link Maze}.  Naturally a {@link Client} cannot be registered with
@@ -122,7 +118,10 @@ public abstract class Client {
         protected Client(String name) {
                 assert(name != null);
                 this.name = name;
-                DictOfClients.put(name, this);
+                if (!Client.DictOfClients.contains(name))
+                {
+                	Client.DictOfClients.put(name, this);
+                }
         }
 
         /**

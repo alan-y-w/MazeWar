@@ -90,7 +90,52 @@ public abstract class LocalClient extends Client implements Runnable{
         	}
         }
         
-
+        public void run()
+        {	
+        	Packet packet = null;
+        	//alanwu: TODO: listen to the server packets and pass moves to 
+        	// itself as well as other Remote clients
+        	while (true)
+        	{
+        		try {
+        			packet = (Packet) this._inputStream.readObject();
+        		} catch (ClassNotFoundException cn) {
+                    cn.printStackTrace();
+                } catch (IOException e) {
+					e.printStackTrace();
+				}
+        		
+        		// enQ
+        		
+        		// implement it to the right client
+        		if (packet != null)
+        		{
+        			Client _client = (Client) Client.DictOfClients.get(packet.GetName());
+        			switch (packet.GetClientEvent().GetEventCode())
+        			{	
+        			case 0:
+        				_client.forward();
+        				break;
+        			case 1:
+        				_client.backup();
+        				break;
+        			case 2:
+        				_client.turnLeft();
+        				break;
+        			case 3:
+        				_client.turnRight();
+        				break;
+        			case 4:
+        				_client.fire();
+        				break;
+					default:
+						break;
+        				
+        			}
+        		}
+        		
+        	}
+        }
         
         public void start ()
         {

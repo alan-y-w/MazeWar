@@ -15,11 +15,17 @@ public class MazewarServer {
     protected static ArrayList <ObjectOutputStream> _listOutputs = new ArrayList();
     protected static Queue<Packet> _eventQ = new ConcurrentLinkedQueue(); 
     
-    public static void main(String[] args) throws IOException {
+    
+    
+    public static void main(String[] args) throws IOException 
+    {
         ServerSocket serverSocket = null;
         boolean listening = true;
 
         serverSocket = new ServerSocket(portNum);
+        
+        new MazewarServerBroadcast().start();
+        
         while (listening) {
         	Socket new_socket = serverSocket.accept();
         	

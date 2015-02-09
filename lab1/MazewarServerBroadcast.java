@@ -14,8 +14,10 @@ public class MazewarServerBroadcast extends MazewarServer implements Runnable{
 	
 	public void run() {
 		// TODO Auto-generated method stub
-		while ((_currPacket = MazewarServer._eventQ.poll()) != null)
+		
+		while (true)
 		{
+			_currPacket = MazewarServer._eventQ.poll();
 			for (ObjectOutputStream stm : MazewarServer._listOutputs)
 			{
 				try {

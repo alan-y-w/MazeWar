@@ -27,6 +27,7 @@ public class Packet implements Serializable{
 		return this._event;
 	}
 	
+	// Return the ID of the packet to/from client 
 	public String GetName()
 	{
 		return this._name;

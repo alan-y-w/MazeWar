@@ -23,10 +23,14 @@ import javax.swing.JTextPane;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.JOptionPane;
+
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
+
 import javax.swing.BorderFactory;
+
 import java.io.Serializable;
+import java.util.ArrayList;
 
 /**
  * The entry point and glue code for the game.  It also contains some helpful
@@ -145,18 +149,35 @@ public class Mazewar extends JFrame {
                 // Create the GUIClient and connect it to the KeyListener queue
                 guiClient = new GUIClient(name);
                 guiClient.ConnectToServer("localhost", 4555);
+                ArrayList<String> remote_client_names = guiClient.BlockAndGetRemoteClientNames();
+                
+                //alanwu: set remote clients
                 guiClient.start();
-                maze.addClient(guiClient);
+//                maze.addClient(guiClient);
                 this.addKeyListener(guiClient);
+                
+                for (String client_name : remote_client_names)
+                {
+                	if (!client_name.equals(name))
+                	{
+                		maze.addClient(new RemoteClient(client_name));
+                	}
+                	else	
+                	{
+                		maze.addClient(guiClient);
+                	}
+
+                }
                 
                 // Use braces to force constructors not to be called at the beginning of the
                 // constructor.
-                {
-                        maze.addClient(new RobotClient("Norby"));
-                        maze.addClient(new RobotClient("Robbie"));
-                        maze.addClient(new RobotClient("Clango"));
-                        maze.addClient(new RobotClient("Marvin"));
-                }
+                // alanwu: commented out for now
+                //{
+                        //maze.addClient(new RobotClient("Norby"));
+                        //maze.addClient(new RobotClient("Robbie"));
+                        //maze.addClient(new RobotClient("Clango"));
+                        //maze.addClient(new RobotClient("Marvin"));
+                //}
 
                 
                 // Create the panel that will display the maze.

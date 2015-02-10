@@ -18,8 +18,19 @@ public class MazewarServerReceive extends MazewarServer implements Runnable {
 			/* stream to read from client */
 			Packet packetFromClient;
 			
-			/* stream to write back to client */
+			// TODO: Get initialization packet from the clients
+			do
+			{
+				packetFromClient = (Packet) this._inStream.readObject();
+			} while ((packetFromClient!=null) && 
+					(packetFromClient.GetClientEvent().GetEventCode() != ClientEvent.init.GetEventCode()));
 			
+			System.out.println("Get init packet from Client!");
+			MazewarServer._listNames.add(packetFromClient.GetName());
+
+			packetFromClient = null;
+			
+			// Looping to pull for new packets
 			while (( packetFromClient = (Packet) this._inStream.readObject()) != null) {
 
 				System.out.println("From Client: " + packetFromClient.GetClientEvent().GetEventCode());

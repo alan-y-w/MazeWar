@@ -4,7 +4,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
-
+import java.util.ArrayList;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
@@ -80,21 +80,37 @@ public abstract class LocalClient extends Client implements Runnable{
         	            System.exit(1);
         	        } 
         	 
-        	 // alanwu: wait for a game start signal from the server
-//        	 while (true)
-//        	 {
-//        		 try {
-//         			packet = (Packet) this._inputStream.readObject();
-//         		} catch (ClassNotFoundException cn) {
-//                     cn.printStackTrace();
-//                } catch (IOException e) {
-// 					e.printStackTrace();
-// 				}
-//        		if (packet != null)
-//        		{	
-//        			break;
-//        		}
-//        	 }
+        }
+        
+		public ArrayList<String> BlockAndGetRemoteClientNames()
+        {
+        	 ArrayList<String> list_names= null;
+
+	       	 // alanwu: send init packets and wait for a game start signal from the server
+        	 try {
+        		System.out.println("Send init packet to Server!");
+				this._outputStream.writeObject(new Packet(this.getName(), ClientEvent.init));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	 
+	       	 while (true)
+	       	 {
+	       		try {
+					list_names = (ArrayList<String>) this._inputStream.readObject();
+				} catch (ClassNotFoundException | IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	    
+	       		if (list_names != null)
+	       		{	
+	       			break;
+	       		}
+	       	 }
+	       	 
+	       	 return list_names;
         }
         
         public void SendPacket(Packet packet)

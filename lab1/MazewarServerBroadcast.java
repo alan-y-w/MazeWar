@@ -18,19 +18,7 @@ public class MazewarServerBroadcast extends MazewarServer implements Runnable{
 		while (true)
 		{
 			_currPacket = MazewarServer._eventQ.poll();
-			if (_currPacket!=null)
-			{
-				for (ObjectOutputStream stm : MazewarServer._listOutputs)
-				{
-					try {
-						System.out.println("broadcasting to: " + _currPacket.GetName());
-						stm.writeObject(_currPacket);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-			}
+			_broadCastPacket(_currPacket);
 		}
 	}
 	
@@ -44,5 +32,22 @@ public class MazewarServerBroadcast extends MazewarServer implements Runnable{
 		}
     }
 	
+	private void _broadCastPacket(Packet _currPacket)
+	{
+		if (_currPacket!=null)
+		{
+			for (ObjectOutputStream stm : MazewarServer._listOutputs)
+			{
+				try {
+					System.out.println("broadcasting to: " + _currPacket.GetName());
+					stm.writeObject(_currPacket);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+	
+	}
 
 }

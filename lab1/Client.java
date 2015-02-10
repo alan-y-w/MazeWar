@@ -25,8 +25,10 @@ import java.util.*;
  * @version $Id: Client.java 343 2004-01-24 03:43:45Z geoffw $
  */
 public abstract class Client {
+		// alanwu: hashtable for client name - client lookup
 		public static Hashtable<String, Client> DictOfClients = new Hashtable<String, Client>();
-        /**
+        
+		/**
          * Register this {@link Client} as being contained by the specified
          * {@link Maze}.  Naturally a {@link Client} cannot be registered with
          * more than one {@link Maze} at a time.

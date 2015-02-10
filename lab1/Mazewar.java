@@ -128,7 +128,8 @@ public class Mazewar extends JFrame {
                 consolePrintLn("ECE419 Mazewar started!");
                 
                 // Create the maze
-                maze = new MazeImpl(new Point(mazeWidth, mazeHeight), mazeSeed);
+                // alanwu: don't use mazeSeed to avoid inconsistency!
+                maze = new MazeImpl(new Point(mazeWidth, mazeHeight), 42);
                 assert(maze != null);
                 
                 // Have the ScoreTableModel listen to the maze to find

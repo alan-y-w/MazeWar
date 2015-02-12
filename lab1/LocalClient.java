@@ -1,4 +1,4 @@
-package notyetdistributed.lab1;
+//package notyetdistributed.lab1;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -46,10 +46,12 @@ USA.
 public abstract class LocalClient extends Client implements Runnable{
 		
 		private Socket _clientSocket;
-		protected ObjectInputStream _inputStream;
 		private ObjectOutputStream _outputStream;
-		protected static Queue<Packet> _eventQ = new ConcurrentLinkedQueue();
 		private Thread _t;
+		
+		protected static ObjectInputStream _inputStream = null;
+		protected static Queue<Packet> _eventQ = new ConcurrentLinkedQueue();
+		
 
         /** 
          * Create a {@link Client} local to this machine.
@@ -58,24 +60,21 @@ public abstract class LocalClient extends Client implements Runnable{
         public LocalClient(String name) {
                 super(name);
                 assert(name != null);
-                this._clientSocket = null;
-                this._inputStream = null;
+                this._clientSocket = null; 
                 this._outputStream = null;
         }
         
 
         /**
-         * Fill in here??
+         * Fill in here??_inputStream
          * TODO: Add code to connect to the server, send packet and disconnect
          */
         public void ConnectToServer(String hostName, int portNumber)
         {
-        	Packet packet = null;
-        	
-        	 try {
+        	try {
         			 	this._clientSocket = new Socket(hostName, portNumber);
         			 	this._outputStream = new ObjectOutputStream(this._clientSocket.getOutputStream());
-        	         	this._inputStream = new ObjectInputStream(this._clientSocket.getInputStream());
+        	         	LocalClient._inputStream = new ObjectInputStream(this._clientSocket.getInputStream());
 
         	        } catch (UnknownHostException e) {
         	            System.err.println("Don't know about host " + hostName);
@@ -104,7 +103,7 @@ public abstract class LocalClient extends Client implements Runnable{
 	       	 while (true)
 	       	 {
 	       		try {
-					list_names = (ArrayList<String>) this._inputStream.readObject();
+					list_names = (ArrayList<String>) LocalClient._inputStream.readObject();
 				} catch (ClassNotFoundException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -127,12 +126,17 @@ public abstract class LocalClient extends Client implements Runnable{
         public void SendPacket(Packet packet)
         {
         	try {
-				System.out.println("To Server: " + packet.GetClientEvent().GetEventCode());
+				//System.out.println("To Server: " + packet.GetClientEvent().GetEventCode());
         		this._outputStream.writeObject(packet);
         	} catch (IOException e) {
         		System.err.println("Cannot send packet to server");
         		e.printStackTrace();
         	}
+        }
+        
+        public void StartReceive()
+        {
+        	new ClientReceive(LocalClient._inputStream, LocalClient._eventQ).start();
         }
         
         public void run()
@@ -141,19 +145,19 @@ public abstract class LocalClient extends Client implements Runnable{
         	//alanwu: listen to the server packets and pass moves to 
         	// itself as well as other Remote clients
 
-			//new ClientReceive(this._inputStream, getName()).start();
+        	
         	while (true)
         	{
-        		try {
-        			packet = (Packet) this._inputStream.readObject();
-        		} catch (ClassNotFoundException cn) {
-                    cn.printStackTrace();
-                } catch (IOException e) {
-					e.printStackTrace();
-				}
+//        		try {
+//        			packet = (Packet) LocalClient._inputStream.readObject();
+//        		} catch (ClassNotFoundException cn) {
+//                    cn.printStackTrace();
+//                } catch (IOException e) {
+//					e.printStackTrace();
+//				}
 
         		// enQ
-				//packet = _eventQ.poll();
+				packet = _eventQ.poll();
         		
         		// implement it to the right client
         		if (packet != null)

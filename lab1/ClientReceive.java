@@ -1,18 +1,20 @@
-package notyetdistributed.lab1;
+//package notyetdistributed.lab1;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.Queue;
 
 /**
  * Created by Suya on 2015-02-12.
  */
-public class ClientReceive extends LocalClient implements Runnable {
-    private ObjectInputStream _inputStream = null;
+public class ClientReceive implements Runnable {
     private Thread _t;
+    private ObjectInputStream _inStream;
+    private Queue<Packet> _eventQ;
 
-    public ClientReceive(ObjectInputStream _inputStream, String name) {
-        super(name);
-        this._inputStream = _inputStream;
+    public ClientReceive(ObjectInputStream _inStream, Queue<Packet> _eventQ) {
+        this._eventQ = _eventQ;
+        this._inStream = _inStream;
         System.out.println("Created new Thread to listen to Server");
     }
 
@@ -20,9 +22,9 @@ public class ClientReceive extends LocalClient implements Runnable {
         Packet packetFromServer = null;
 
         try {
-            while ((packetFromServer = (Packet) this._inputStream.readObject()) != null) {
-                System.out.println("Received from Server: " + packetFromServer.GetClientEvent().GetEventCode());
-                LocalClient._eventQ.offer(packetFromServer);
+            while ((packetFromServer = (Packet) _inStream.readObject()) != null) {
+               // System.out.println("Received from Server: " + packetFromServer.GetClientEvent().GetEventCode());
+                this._eventQ.offer(packetFromServer);
             }
 
         } catch (ClassNotFoundException e) {

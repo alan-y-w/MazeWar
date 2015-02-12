@@ -16,7 +16,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,
 USA.
 */
-package notyetdistributed.lab1;
+//package notyetdistributed.lab1;
 
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
@@ -95,7 +95,7 @@ public class Mazewar extends JFrame {
         }
         
         /** 
-         * Write a message to the console.
+         * Write a messaStartReceivege to the console.
          * @param msg The {@link String} to print.
          */ 
         public static synchronized void consolePrint(String msg) {
@@ -154,6 +154,7 @@ public class Mazewar extends JFrame {
                 ArrayList<String> remote_client_names = guiClient.BlockAndGetRemoteClientNames();
                 
                 //alanwu: set remote clients
+                guiClient.StartReceive();
                 guiClient.start();
 //                maze.addClient(guiClient);
                 this.addKeyListener(guiClient);

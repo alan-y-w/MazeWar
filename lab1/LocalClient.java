@@ -1,3 +1,5 @@
+package notyetdistributed.lab1;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -7,6 +9,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 
 /*
@@ -42,9 +46,11 @@ USA.
 public abstract class LocalClient extends Client implements Runnable{
 		
 		private Socket _clientSocket;
-		private ObjectInputStream _inputStream;	
+		protected ObjectInputStream _inputStream;
 		private ObjectOutputStream _outputStream;
+		protected static Queue<Packet> _eventQ = new ConcurrentLinkedQueue();
 		private Thread _t;
+
         /** 
          * Create a {@link Client} local to this machine.
          * @param name The name of this {@link Client}.
@@ -70,7 +76,7 @@ public abstract class LocalClient extends Client implements Runnable{
         			 	this._clientSocket = new Socket(hostName, portNumber);
         			 	this._outputStream = new ObjectOutputStream(this._clientSocket.getOutputStream());
         	         	this._inputStream = new ObjectInputStream(this._clientSocket.getInputStream());
-        	         	
+
         	        } catch (UnknownHostException e) {
         	            System.err.println("Don't know about host " + hostName);
         	            System.exit(1);
@@ -94,7 +100,7 @@ public abstract class LocalClient extends Client implements Runnable{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-        	 
+
 	       	 while (true)
 	       	 {
 	       		try {
@@ -106,15 +112,16 @@ public abstract class LocalClient extends Client implements Runnable{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-	       	  
-	    
+
+
 	       		if (list_names != null)
-	       		{	
+	       		{
 	       			break;
 	       		}
 	       	 }
-	       	 
+
 	       	 return list_names;
+
         }
         
         public void SendPacket(Packet packet)
@@ -133,6 +140,8 @@ public abstract class LocalClient extends Client implements Runnable{
         	Packet packet = null;
         	//alanwu: listen to the server packets and pass moves to 
         	// itself as well as other Remote clients
+
+			//new ClientReceive(this._inputStream, getName()).start();
         	while (true)
         	{
         		try {
@@ -142,13 +151,16 @@ public abstract class LocalClient extends Client implements Runnable{
                 } catch (IOException e) {
 					e.printStackTrace();
 				}
-        		
+
         		// enQ
+				//packet = _eventQ.poll();
         		
         		// implement it to the right client
         		if (packet != null)
         		{
+
         			Client _client = (Client) Client.DictOfClients.get(packet.GetName());
+					System.out.println("In local Client: " + packet.GetClientEvent().GetEventCode() + " Client name is: " + _client.getName());
         			switch (packet.GetClientEvent().GetEventCode())
         			{	
 	        			case 0:

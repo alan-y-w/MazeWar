@@ -1,3 +1,5 @@
+package notyetdistributed.lab1;
+
 import java.io.Serializable;
 
 public class Packet implements Serializable{

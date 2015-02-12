@@ -1,3 +1,4 @@
+package notyetdistributed.lab1;
 import java.net.*;
 import java.io.*;
 
@@ -34,9 +35,12 @@ public class MazewarServerReceive extends MazewarServer implements Runnable {
 			while (( packetFromClient = (Packet) this._inStream.readObject()) != null) {
 
 				System.out.println("From Client: " + packetFromClient.GetClientEvent().GetEventCode());
-				
-				// alanwu: write to Q
+
 				MazewarServer._eventQ.offer(packetFromClient);
+
+				/*if (MazewarServer._eventQ.peek() != null) {
+					System.out.println("Top of the Q: " + MazewarServer._eventQ.peek().GetClientEvent().GetEventCode());
+				}*/
 			}
 			
 		} catch (IOException e) {
@@ -57,6 +61,4 @@ public class MazewarServerReceive extends MazewarServer implements Runnable {
 			_t.start ();
 		}
     }
-
-	//abstract private receivePacket()
 }

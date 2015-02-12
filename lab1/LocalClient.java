@@ -99,10 +99,14 @@ public abstract class LocalClient extends Client implements Runnable{
 	       	 {
 	       		try {
 					list_names = (ArrayList<String>) this._inputStream.readObject();
-				} catch (ClassNotFoundException | IOException e) {
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+	       	  
 	    
 	       		if (list_names != null)
 	       		{	

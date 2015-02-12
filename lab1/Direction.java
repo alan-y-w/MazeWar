@@ -32,7 +32,8 @@ public class Direction {
         /**
          * Create a random number generator to produce random directions.
          */
-        private static Random randomGen = new Random();
+		// alanwu: pass in a fixed seed
+        private static Random randomGen = new Random(42);
         
         /** 
          * Internal representation of directions

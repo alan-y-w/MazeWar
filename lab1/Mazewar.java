@@ -173,12 +173,12 @@ public class Mazewar extends JFrame {
                 // Use braces to force constructors not to be called at the beginning of the
                 // constructor.
                 // alanwu: commented out for now
-                //{
+                {
                         //maze.addClient(new RobotClient("Norby"));
                         //maze.addClient(new RobotClient("Robbie"));
                         //maze.addClient(new RobotClient("Clango"));
                         //maze.addClient(new RobotClient("Marvin"));
-                //}
+                }
 
                 
                 // Create the panel that will display the maze.

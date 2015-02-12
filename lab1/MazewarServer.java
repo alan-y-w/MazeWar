@@ -20,6 +20,8 @@ public class MazewarServer {
     // alanwu: keep track of client names for multiplayer game initialization
     protected static ArrayList<String> _listNames =  (new ArrayList());
     
+    private static MazewarServerBroadcast serverBroadcaster;
+    
     public static void main(String[] args) throws IOException 
     {
         ServerSocket serverSocket = null;
@@ -40,7 +42,8 @@ public class MazewarServer {
         
         serverSocket = new ServerSocket(portNum);
         
-        new MazewarServerBroadcast().start();
+        serverBroadcaster = new MazewarServerBroadcast();
+        serverBroadcaster.start();
         
         while (player_count < num_players) {
         	Socket new_socket = serverSocket.accept();
@@ -68,6 +71,7 @@ public class MazewarServer {
 	        if (_listNames.size() == num_players)
 	        {
 	        	_broadCastNames();
+	        	serverBroadcaster.startMissileTickThread();
 	        	break;
 	        }
         }

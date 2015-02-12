@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Set;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Queue;
@@ -146,6 +147,7 @@ public abstract class LocalClient extends Client implements Runnable{
         	// itself as well as other Remote clients
 
         	
+			Set<String> _clientNames = DictOfClients.keySet();
         	while (true)
         	{
 //        		try {
@@ -160,34 +162,39 @@ public abstract class LocalClient extends Client implements Runnable{
 				packet = _eventQ.poll();
         		
         		// implement it to the right client
-        		if (packet != null)
-        		{
-
-        			Client _client = (Client) Client.DictOfClients.get(packet.GetName());
-					System.out.println("In local Client: " + packet.GetClientEvent().GetEventCode() + " Client name is: " + _client.getName());
-        			switch (packet.GetClientEvent().GetEventCode())
-        			{	
-	        			case 0:
-	        				_client.forward();
-	        				break;
-	        			case 1:
-	        				_client.backup();
-	        				break;
-	        			case 2:
-	        				_client.turnLeft();
-	        				break;
-	        			case 3:
-	        				_client.turnRight();
-	        				break;
-	        			case 4:
-	        				_client.fire();
-	        				break;
-						default:
-							break;
+        		if (packet != null) {
+					//6 is the code for missileTick
+					if (packet.GetClientEvent().GetEventCode() == 6) {
+						for(String _clientName: _clientNames) {
+							Client.DictOfClients.get(_clientName).missileTick();
+							//System.out.print("Client got missile tick");
+						}
+					} 
+					else {
+						Client _client = (Client) Client.DictOfClients.get(packet.GetName());
+						System.out.println("In local Client: " + packet.GetClientEvent().GetEventCode() + " Client name is: " + _client.getName());
+	        			switch (packet.GetClientEvent().GetEventCode()){	
+		        			case 0:
+		        				_client.forward();
+		        				break;
+		        			case 1:
+		        				_client.backup();
+		        				break;
+		        			case 2:
+		        				_client.turnLeft();
+		        				break;
+		        			case 3:
+		        				_client.turnRight();
+		        				break;
+		        			case 4:
+		        				_client.fire();
+		        				break;
+							default:
+								break;
         				
-        			}
+	        			}
+					}
         		}
-        		
         	}
         }
         

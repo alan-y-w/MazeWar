@@ -43,7 +43,7 @@ import java.util.HashMap;
  * @version $Id: MazeImpl.java 371 2004-02-10 21:55:32Z geoffw $
  */
 
-public class MazeImpl extends Maze implements Serializable, ClientListener, Runnable {
+public class MazeImpl extends Maze implements Serializable, ClientListener{
 
         /**
          * Create a {@link Maze}.
@@ -69,7 +69,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
                         mazeVector.insertElementAt(colVector, i);
                 }
 
-                thread = new Thread(this);
+                //thread = new Thread(this);
 
                 // Initialized the random number generator
                 randomGen = new Random(seed);
@@ -77,7 +77,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
                 // Build the maze starting at the corner
                 buildMaze(new Point(0,0));
 
-                thread.start();
+                //thread.start();
         }
        
         /** 
@@ -331,9 +331,10 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
         /**
          * Control loop for {@link Projectile}s.
          */
-        public void run() {
+        //public void run() {
+        public  void shootMissile() {
                 Collection deadPrj = new HashSet();
-                while(true) {
+                //while(true) {
                         if(!projectileMap.isEmpty()) {
                                 Iterator it = projectileMap.keySet().iterator();
                                 synchronized(projectileMap) {
@@ -353,12 +354,13 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
                                         deadPrj.clear();
                                 }
                         }
-                        try {
+                        //sleeping will now be done by the Server
+                        /*try {
                                 thread.sleep(200);
                         } catch(Exception e) {
                                 // shouldn't happen
-                        }
-                }
+                        }*/
+               // }
         }
         
         /* Internals */
@@ -588,7 +590,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener, Runn
         /**
          * The thread used to manage {@link Projectile}s.
          */
-        private final Thread thread;
+        //private final Thread thread;
         
         /**
          * Generate a notification to listeners that a

@@ -95,7 +95,7 @@ public class Mazewar extends JFrame {
         }
         
         /** 
-         * Write a messaStartReceivege to the console.
+         * Write a message to the console.
          * @param msg The {@link String} to print.
          */ 
         public static synchronized void consolePrint(String msg) {
@@ -132,6 +132,8 @@ public class Mazewar extends JFrame {
                 // alanwu: don't use mazeSeed to avoid inconsistency!
                 maze = new MazeImpl(new Point(mazeWidth, mazeHeight), 42);
                 assert(maze != null);
+                
+                Client.myMazeImpl = (MazeImpl) maze;
                 
                 // Have the ScoreTableModel listen to the maze to find
                 // out how to adjust scores.

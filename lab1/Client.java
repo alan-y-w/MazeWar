@@ -27,7 +27,7 @@ import java.util.*;
 public abstract class Client {
 		// alanwu: hashtable for client name - client lookup
 		public static Hashtable<String, Client> DictOfClients = new Hashtable<String, Client>();
-        
+        public static MazeImpl myMazeImpl;
 		/**
          * Register this {@link Client} as being contained by the specified
          * {@link Maze}.  Naturally a {@link Client} cannot be registered with
@@ -174,6 +174,11 @@ public abstract class Client {
          * Fire a projectile.
          * @return <code>true</code> if a projectile was successfully launched, otherwise <code>false</code>.
          */
+
+        protected void missileTick() {
+                myMazeImpl.shootMissile(); 
+        }
+
         protected boolean fire() {
                 assert(maze != null);
 

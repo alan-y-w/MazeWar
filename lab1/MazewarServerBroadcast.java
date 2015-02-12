@@ -6,16 +6,44 @@ import java.io.ObjectOutputStream;
 
 public class MazewarServerBroadcast extends MazewarServer implements Runnable{
 
-	private Thread _t;
-	private Packet _currPacket;
+	private Thread _t, _missileTickThread;
+	private Packet _currPacket; 
+	//private final Runnable _missileTickThread;
 	
 	public MazewarServerBroadcast()
 	{
 		//alanwu: nothing to do here
+		/*_missileTickThread = new Runnable() {
+			private void run() {
+				MazewarServerBroadcast.this.missileTick();
+			}
+		}*/
 	}
 	
 	public void run() {
 		// TODO Auto-generated method stub
+		
+		_missileTickThread = new Thread(
+				new Runnable() {
+					public void run() {
+						Packet _missilePacket;
+						
+						_missilePacket = new Packet(null, ClientEvent.missileTick);
+						
+						try {
+				            while (true) {
+				                _broadCastPacket(_missilePacket);
+				                //System.out.print("sending tick " + missileTickPacket.GetClientEvent().GetEventCode());
+				                Thread.sleep(200);
+				            }
+				        }
+				        catch (Exception e) {
+				            // shouldn't happen
+				        }
+					}
+				});
+			
+			
 		
 		while (true)
 		{
@@ -34,6 +62,10 @@ public class MazewarServerBroadcast extends MazewarServer implements Runnable{
 		}
     }
 	
+	public void startMissileTickThread() {
+		_missileTickThread.start();
+	}
+	
 	private void _broadCastPacket(Packet _currPacket)
 	{
 		if (_currPacket!=null)
@@ -41,7 +73,7 @@ public class MazewarServerBroadcast extends MazewarServer implements Runnable{
 			for (ObjectOutputStream stm : MazewarServer._listOutputs)
 			{
 				try {
-					System.out.println("broadcasting to: " + _currPacket.GetName());
+					//System.out.println("broadcasting to: " + _currPacket.GetName());
 					stm.writeObject(_currPacket);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -49,7 +81,5 @@ public class MazewarServerBroadcast extends MazewarServer implements Runnable{
 				}
 			}
 		}
-	
 	}
-
 }

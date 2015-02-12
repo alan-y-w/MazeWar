@@ -39,6 +39,7 @@ public class ClientEvent implements Serializable {
         private static final int TURN_RIGHT = 3;
         private static final int FIRE = 4;
         private static final int INIT = 5;
+        private static final int MISSILE_TICK = 6;
         
         /**
          * Default to 0, to be invalid.
@@ -49,7 +50,7 @@ public class ClientEvent implements Serializable {
          * Create a new {@link ClientEvent} from an internal representation.
          */
         private ClientEvent(int event) {
-                assert((event >= 0) && (event <= 5));
+                assert((event >= 0) && (event <= 6));
                 this.event = event;
         }
 
@@ -82,6 +83,9 @@ public class ClientEvent implements Serializable {
         
         // Used for game initialization
         public static final ClientEvent init = new ClientEvent(INIT);
+
+        //if client has received fire signal, then will actually shoot
+        public static final ClientEvent missileTick = new ClientEvent(MISSILE_TICK);
         
         public int GetEventCode()
         {

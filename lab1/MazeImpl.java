@@ -341,7 +341,9 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
                                         while(it.hasNext()) {   
                                                 Object o = it.next();
                                                 assert(o instanceof Projectile);
-                                                deadPrj.addAll(moveProjectile((Projectile)o));
+                                                // if this projectile hasn't already  been destroyed by another
+                                                if (((Projectile)o).remove_flag == false)
+                                                    deadPrj.addAll(moveProjectile((Projectile)o));
                                         }               
                                         it = deadPrj.iterator();
                                         while(it.hasNext()) {
@@ -380,6 +382,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
                         // If there is a wall, the projectile goes away.
                         cell.setContents(null);
                         deadPrj.add(prj);
+                        prj.remove_flag = true;
                         update();
                         return deadPrj;
                 }
@@ -397,6 +400,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
                                 cell.setContents(null);
                                 deadPrj.add(prj);
                                 update();
+                                prj.remove_flag = true;
                                 return deadPrj;
                         } else {
                         // Bullets destroy each other
@@ -406,6 +410,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
                                 deadPrj.add(prj);
                                 deadPrj.add(contents);
                                 update();
+                                prj.remove_flag = true;
                                 return deadPrj;
                         }
                 }

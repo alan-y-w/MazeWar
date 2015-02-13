@@ -34,7 +34,7 @@ public class MazewarServerReceive extends MazewarServer implements Runnable {
 			// Looping to pull for new packets
 			while (( packetFromClient = (Packet) this._inStream.readObject()) != null) {
 
-				System.out.println("From Client: " + packetFromClient.GetClientEvent().GetEventCode());
+				//System.out.println("From Client: " + packetFromClient.GetClientEvent().GetEventCode());
 
 				MazewarServer._eventQ.offer(packetFromClient);
 

@@ -83,7 +83,7 @@ public class MazewarServer {
 		for (ObjectOutputStream stm : MazewarServer._listOutputs)
 		{
 			try {
-				System.out.println("broadcasting Names to clients");
+				//System.out.println("broadcasting Names to clients");
 				stm.writeObject(_listNames);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

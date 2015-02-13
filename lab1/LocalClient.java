@@ -150,14 +150,6 @@ public abstract class LocalClient extends Client implements Runnable{
 			Set<String> _clientNames = DictOfClients.keySet();
         	while (true)
         	{
-//        		try {
-//        			packet = (Packet) LocalClient._inputStream.readObject();
-//        		} catch (ClassNotFoundException cn) {
-//                    cn.printStackTrace();
-//                } catch (IOException e) {
-//					e.printStackTrace();
-//				}
-
         		// enQ
 				packet = _eventQ.poll();
         		
@@ -172,7 +164,7 @@ public abstract class LocalClient extends Client implements Runnable{
 					} 
 					else {
 						Client _client = (Client) Client.DictOfClients.get(packet.GetName());
-						System.out.println("In local Client: " + packet.GetClientEvent().GetEventCode() + " Client name is: " + _client.getName());
+						//System.out.println("In local Client: " + packet.GetClientEvent().GetEventCode() + " Client name is: " + _client.getName());
 	        			switch (packet.GetClientEvent().GetEventCode()){	
 		        			case 0:
 		        				_client.forward();

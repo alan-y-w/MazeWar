@@ -8,6 +8,9 @@ public class Packet implements Serializable{
 	// ID of the client
 	private String _name;
 	
+	// Sequence number
+	public long seqNumber = -1;
+	
 	// event of the package
 
 	private ClientEvent _event; 

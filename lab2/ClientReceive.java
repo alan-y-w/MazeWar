@@ -27,7 +27,9 @@ public class ClientReceive implements Runnable {
     	// send my own name
     	System.out.println("Send init packet to Server: "+ this._myName);
     	try {
-			_outStream.writeObject(new Packet(this._myName, ClientEvent.init));
+    		Packet myPacket = LocalClient.GetSequenceNumber(new Packet(this._myName, ClientEvent.init));
+			System.out.println("Obtain seq number: "+ myPacket.seqNumber);
+    		_outStream.writeObject(myPacket);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

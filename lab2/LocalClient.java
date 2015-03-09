@@ -59,6 +59,12 @@ public abstract class LocalClient extends Client implements Runnable{
 		private static LinkedBlockingQueue<String> _peerNames = new LinkedBlockingQueue<String>(); 
 		protected static Queue<Packet> _eventQ = new ConcurrentLinkedQueue<Packet>();
 		private static Maze maze;
+		private static ObjectInputStream _seqInStream;
+		private static ObjectOutputStream _seqOutStream;
+		private static int _seqPortNum = 4444;
+	    private static String _seqHostName = "localhost";
+	    private static long _curSeqNumber = 0;
+	    
 		/** 
          * Create a {@link Client} local to this machine.
          * @param name The name of this {@link Client}.
@@ -67,14 +73,41 @@ public abstract class LocalClient extends Client implements Runnable{
                 super(name);
                 assert(name != null);
                 LocalClient.maze = maze;
+                
+                // connect to the sequencer service
+                // temp code
+                // TODO: make this distributed
+                try {
+					Socket seqSocket = new Socket(_seqHostName, _seqPortNum);
+					LocalClient._seqOutStream = new ObjectOutputStream (seqSocket.getOutputStream());
+					LocalClient._seqInStream = new ObjectInputStream(seqSocket.getInputStream());
+					
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					System.out.println("Can't connect to Sequencer Service!");
+				}
+        }
+        
+        public static Packet GetSequenceNumber(Packet packet)
+        {
+        	Packet retPacket = null;
+        	try {
+				LocalClient._seqOutStream.writeObject(packet);
+				retPacket = (Packet) LocalClient._seqInStream.readObject();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	return retPacket;
         }
         
         // start a thread to handle incoming peer requests
         public void ConnectToPeer(final String [] hostnames, final int[] ports)
         {
-        	// P1 listens to P2, P3 and P4,
-        	// P2 listens to P3 and P4,
-        	// P3 listens to P4
         	Thread thread = new Thread(){
         	    public void run(){
         	    	int count = 0;
@@ -124,20 +157,6 @@ public abstract class LocalClient extends Client implements Runnable{
         	};
         	thread.setName(this.getName());
         	thread.start();
-        }
-        
-        // blocking call to get names of new peer
-        public String GetPeerName()
-        {
-        	String ret_str = null;
-        	try {
-        		ret_str = LocalClient._peerNames.take();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				System.out.println("DeQ name failed!\n");
-			}
-        	return ret_str;
         }
         
         public void run() {

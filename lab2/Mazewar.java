@@ -153,6 +153,9 @@ public class Mazewar extends JFrame {
                 guiClient = new GUIClient(name, maze);
                 String[] hostnames = {"localhost", "localhost", "localhost"};
                 int[] ports = {4555, 4556, 4557};
+                
+                // set guiclient's position, orientationo
+                
                 guiClient.ConnectToPeer(hostnames, ports);
                 // guiClient.ConnectToServer("localhost", 4555);
                 // ArrayList<String> remote_client_names = guiClient.BlockAndGetRemoteClientNames();
@@ -160,10 +163,16 @@ public class Mazewar extends JFrame {
                 //alanwu: set remote clients
                // guiClient.StartReceive();
                 guiClient.start();
-                
-//                maze.addClient(guiClient);
                 this.addKeyListener(guiClient);
+                // do this when all the other clients are done
+                maze.addClient(guiClient);
                 
+//                try {
+//					Thread.sleep(2000);
+//				} catch (InterruptedException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
 //                for (String client_name : remote_client_names)
 //                {
 //                	if (!client_name.equals(name))
@@ -172,7 +181,7 @@ public class Mazewar extends JFrame {
 //                	}
 //                	else	
 //                	{
-                		maze.addClient(guiClient);
+//                		maze.addClient(guiClient);
 //                	}
 //                }
                 

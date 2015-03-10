@@ -27,21 +27,33 @@ public class ClientReceive implements Runnable {
     	// send my own name
     	System.out.println("Send init packet to Server: "+ this._myName);
     	try {
-    		Packet myPacket = LocalClient.GetSequenceNumber(new Packet(this._myName, ClientEvent.init));
-			System.out.println("Obtain seq number: "+ myPacket.seqNumber);
-    		_outStream.writeObject(myPacket);
+    		synchronized(this)
+    		{
+	    		Packet myPacket = LocalClient.GetSequenceNumber(new Packet(this._myName, ClientEvent.init));
+	    		System.out.println("Obtain seq number: "+ myPacket.seqNumber);
+	    		_outStream.writeObject(myPacket);
+	    		// put myself on the Q
+	    		// need to remove duplicates
+	    		// Need to make this atomic
+    			LocalClient._eventQ.offer(myPacket);
+	    		if (myPacket.seqNumber > LocalClient._curSeqNumber )
+	    		{
+	    			LocalClient._curSeqNumber = myPacket.seqNumber;
+	    		}
+    		}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+    	
     	// enqueue packets
     	Packet packetFromPeer = null;
         try {
-			while ((packetFromPeer = (Packet) _inStream.readObject()) != null) {
-			    // System.out.println("Received from Server: " + packetFromServer.GetClientEvent().GetEventCode());
-			    System.out.println("Received a packet!");
-				this._eventQ.offer(packetFromPeer);
+			while (true) {
+				synchronized(this){
+				packetFromPeer = (Packet) _inStream.readObject();
+				LocalClient._eventQ.offer(packetFromPeer);
+				}
 			}
 		} catch (ClassNotFoundException | IOException e) {
 			// TODO Auto-generated catch block

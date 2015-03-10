@@ -24,6 +24,10 @@ public class Sequencer {
 		return Sequencer._current_count;
 	}
 	
+	public static synchronized long Get(){
+		return Sequencer._current_count;
+	}
+	
 	public static void main(String[] args) throws IOException 
     {
 		_serverSocket = null;

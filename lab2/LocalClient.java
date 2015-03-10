@@ -65,7 +65,6 @@ public abstract class LocalClient extends Client implements Runnable{
 		private static int _seqPortNum = 4444;
 	    private static String _seqHostName = "localhost";
 	    public static long _curSeqNumber = -1;
-	    public static long InitSeqNum = -1;
 	    
 		/** 
          * Create a {@link Client} local to this machine.
@@ -183,76 +182,7 @@ public abstract class LocalClient extends Client implements Runnable{
         	while (true)
         	{
     			synchronized(this){
-	        		if ((_eventQ.size() > 0) && (_eventQ.peek().seqNumber == _curSeqNumber))
-	        		{
-	        			_curSeqNumber++;
-						packet = _eventQ.poll();
-
-		        		if (packet != null) {
-							// implement it to the right client
-		        			if (Client.DictOfClients.containsKey(packet.GetName()))
-		        			{
-		        				ImplementPacket(packet);
-		        			}
-							else
-							{
-								String name = packet.GetName();
-								
-								if (name != this.getName())
-								{
-									System.out.println("creating remote client: " + name);
-			        				LocalClient.maze.addClient(new RemoteClient(name));
-								}
-								else
-								{
-									// create the gui client
-									System.out.println("creating GUI client: " + name);
-									LocalClient.maze.addClient((GUIClient)this);
-								}
-								
-		        				// set position & orientation
-		        				// set score
-		        				//break;
-							}
-						
-		        		}
-	        		}
-	        		// consume packets that's less than the init packet for this local client
-	        		// if the packet is not init, ignore it
-	        		// otherwise create a new remote client
-		        	else if ((_eventQ.size() > 0) && (_eventQ.peek().seqNumber < _curSeqNumber))
-	        		{
-	        			packet = _eventQ.poll();
-	        			if (packet != null) {
-	        				if ((Client.DictOfClients.containsKey(packet.GetName())))
-	        				{
-	        					ImplementPacket(packet);
-	        				}
-	        				// create new remote client
-	        				else if (packet.GetClientEvent().GetEventCode() == 5)
-	        				{
-	        					String name = packet.GetName();					
-								if (name != this.getName())
-								{
-									System.out.println("creating remote client: " + name);
-			        				LocalClient.maze.addClient(new RemoteClient(name));
-								}
-								else
-								{
-									// create the gui client
-									System.out.println("creating GUI client: " + name);
-									LocalClient.maze.addClient((GUIClient)this);
-								}
-	        				}
-	        				// if client not present and packet is not init, ignore the packet
-	        				else
-	        				{
-	        					continue;
-	        				}
-	        			}
-		        		
-	        		}
-	        		else if (_eventQ.size() == 0)// the Q is empty, sleep and wait for more requests
+    				if (_eventQ.size() == 0)// the Q is empty, sleep and wait for more requests
 	        		{
 	        			try {
 							Thread.sleep(1);
@@ -261,21 +191,69 @@ public abstract class LocalClient extends Client implements Runnable{
 							e.printStackTrace();
 						}
 	        		}
+    				else if (_eventQ.peek().seqNumber == _curSeqNumber)
+	        		{
+	        			_curSeqNumber++;
+						packet = _eventQ.poll();
+
+		        		if (packet != null) {
+		        			int eventCode = packet.GetClientEvent().GetEventCode();
+		        			if (eventCode != 5)
+		        			{
+								// implement it to the right client
+			        			if (Client.DictOfClients.containsKey(packet.GetName()))
+			        			{
+			        				ImplementPacket(packet, eventCode);
+			        			}
+		        			}
+							else
+							{
+								// init packet doesn't need to be ordered
+								_curSeqNumber -- ;
+								synchronized(this)
+								{
+								String name = packet.GetName();
+								
+								// if not already added as a client
+								if (!name.equals(this.getName()))
+								{
+									System.out.println("creating remote client: " + name);
+			        				LocalClient.maze.addClient(new RemoteClient(name));
+								}
+								else 
+								{
+									// create the gui client
+									System.out.println("creating GUI client: " + this.getName());
+									LocalClient.maze.addClient((GUIClient)this);
+								}
+								
+								// reset the RandGen to be consistent
+								LocalClient.maze.ResetRandGen();
+								}
+		        				// set position & orientation
+		        				// set score
+		        				//break;
+							}
+						
+		        		}
+	        		}
 	        		else
 	        		{
 	        			System.out.println("Seq Number Wrong!!!");
-	        			break;
+	        			System.out.println("Q head: "+_eventQ.peek().seqNumber);
+	        			System.out.println("Current Seq Num: "+  _curSeqNumber);
+	        			//break;
 	        		}
         		}
         	}
 		}
         
-        private void ImplementPacket(Packet packet)
+        private void ImplementPacket(Packet packet, int EventCode)
         {
         	Set<String> _clientNames = DictOfClients.keySet();
         	
 			Client _client = (Client) Client.DictOfClients.get(packet.GetName());
-			switch (packet.GetClientEvent().GetEventCode()){	
+			switch (EventCode){	
 			case 0:
 				_client.forward();
 				break;

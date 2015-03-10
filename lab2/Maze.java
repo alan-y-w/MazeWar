@@ -117,4 +117,6 @@ public abstract class Maze {
      */
     public abstract void removeMazeListener(MazeListener ml);
     
+    public abstract void ResetRandGen();
+    
 }

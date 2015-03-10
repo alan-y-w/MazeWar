@@ -72,7 +72,8 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
                 //thread = new Thread(this);
 
                 // Initialized the random number generator
-                randomGen = new Random(seed);
+                randSeed = seed;
+                randomGen = new Random(randSeed);
                 
                 // Build the maze starting at the corner
                 buildMaze(new Point(0,0));
@@ -195,8 +196,14 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
         }
         
         public synchronized void addClient(Client client) {
+        	if (!clientMap.containsKey(client))
+        	{
                 assert(client != null);
                 // Pick a random starting point, and check to see if it is already occupied
+                
+                long pasedSeed = Long.parseLong(client.getName(), 36);
+                //System.out.println(client.getName() +" Seed: "+ pasedSeed);
+                randomGen = new Random(pasedSeed);
                 Point point = new Point(randomGen.nextInt(maxX),randomGen.nextInt(maxY));
                 CellImpl cell = getCellImpl(point);
                 // Repeat until we find an empty cell
@@ -205,6 +212,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
                         cell = getCellImpl(point);
                 } 
                 addClient(client, point);
+        	}
         }
         
         public synchronized Point getClientPoint(Client client) {
@@ -332,7 +340,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
          * Control loop for {@link Projectile}s.
          */
         //public void run() {
-        public  void shootMissile() {
+        public void shootMissile() {
                 Collection deadPrj = new HashSet();
                 //while(true) {
                         if(!projectileMap.isEmpty()) {
@@ -363,6 +371,12 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
                                 // shouldn't happen
                         }*/
                // }
+        }
+        
+        public void ResetRandGen()
+        {
+        	randomGen = new Random(randSeed);
+        	return;
         }
         
         /* Internals */
@@ -433,7 +447,7 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
                 assert(checkBounds(point));
                 CellImpl cell = getCellImpl(point);
                 //Direction d = Direction.random();
-                //alanwu: same initial location 
+                //alanwu: same initial direction 
                 Direction d = Direction.East;
                 while(cell.isWall(d)) {
                   d = Direction.random();
@@ -551,7 +565,12 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
         /**
          * The random number generator used by the {@link Maze}.
          */
-        private final Random randomGen;
+        private Random randomGen;
+        
+        /**
+         * alanwu: The initial seed used by number generator.
+         */
+        private long randSeed;
 
         /**
          * The maximum X coordinate of the {@link Maze}.

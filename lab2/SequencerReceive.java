@@ -18,7 +18,14 @@ public class SequencerReceive implements Runnable {
     	Packet packetFromPeer = null;
     	try {
 			while ((packetFromPeer = (Packet) _inStream.readObject()) != null) {
-			    packetFromPeer.seqNumber = Sequencer.Add();
+				if (packetFromPeer.GetClientEvent().GetEventCode() ==5)
+				{
+					packetFromPeer.seqNumber = Sequencer.Get();
+				}
+				else
+				{
+					packetFromPeer.seqNumber = Sequencer.Add();
+				}
 			    System.out.println("Assign Sequence Number: " +  packetFromPeer.seqNumber);
 			    _outStream.writeObject(packetFromPeer);
 			}

@@ -165,14 +165,15 @@ public class Mazewar extends JFrame {
                 guiClient.start();
                 this.addKeyListener(guiClient);
                 // do this when all the other clients are done
-                maze.addClient(guiClient);
-                
-//                try {
-//					Thread.sleep(2000);
-//				} catch (InterruptedException e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
+                // maze.addClient(guiClient);
+               
+                try {
+					Thread.sleep(2000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
 //                for (String client_name : remote_client_names)
 //                {
 //                	if (!client_name.equals(name))

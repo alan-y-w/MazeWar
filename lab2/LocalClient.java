@@ -55,7 +55,7 @@ public abstract class LocalClient extends Client implements Runnable{
 		private Thread _t;
 		// list of sockets for this game instance to connect to as clients
 		// for broadcast
-		private Vector<ObjectInputStream> _peerInputStreamList = new Vector<ObjectInputStream>();
+		//private Vector<ObjectInputStream> _peerInputStreamList = new Vector<ObjectInputStream>();
 		private Vector<ObjectOutputStream> _peerOutputStreamList = new Vector<ObjectOutputStream>();
 		private static LinkedBlockingQueue<String> _peerNames = new LinkedBlockingQueue<String>(); 
 		protected static PriorityQueue<Packet> _eventQ = new PriorityQueue<Packet>(10, new PacketComparator());
@@ -65,6 +65,7 @@ public abstract class LocalClient extends Client implements Runnable{
 		private static int _seqPortNum = 4444;
 	    private static String _seqHostName = "localhost";
 	    public static long _curSeqNumber = -1;
+	    public static Point InitPoint;
 	    
 		/** 
          * Create a {@link Client} local to this machine.
@@ -164,10 +165,11 @@ public abstract class LocalClient extends Client implements Runnable{
 								 _in = new ObjectInputStream(serverSocket.getInputStream());
         	                	
         	                	_peerOutputStreamList.add(_out);
-        	    				_peerInputStreamList.add(_in);
+        	    				//_peerInputStreamList.add(_in);
                         		}
         	    				
         	    				// start a new thread to handle new peer
+                        		InitHandShake(_out);
         	    				new ClientReceive(_in, _out, LocalClient._eventQ, this.getName()).start();
                         	}
 
@@ -183,11 +185,12 @@ public abstract class LocalClient extends Client implements Runnable{
 								 _out = new ObjectOutputStream (clientSocket.getOutputStream());
 								 _in = new ObjectInputStream(clientSocket.getInputStream());
 								_peerOutputStreamList.add(_out);
-								_peerInputStreamList.add(_in);
+								//_peerInputStreamList.add(_in);
 	                        	
 	                        	System.out.println("Connected as client! port: " +  ports[count]);
                         		}
 	                        	// start a new thread to handle new peer
+								InitHandShake(_out);
 	                        	new ClientReceive(_in, _out, LocalClient._eventQ, this.getName()).start();
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
@@ -201,6 +204,44 @@ public abstract class LocalClient extends Client implements Runnable{
         	};
         	thread.setName(this.getName());
         	thread.start();
+        }
+        
+        private void InitHandShake(ObjectOutputStream _outStream)
+        {
+        	// send my own name
+        	// run this only when initializing
+        	System.out.println("Send init packet to Server: "+ this.getName());
+        	try {
+        		
+    	    		Packet myPacket = LocalClient.GetSequenceNumber(new Packet(this.getName(), ClientEvent.init));
+    	    		System.out.println("Obtain seq number: "+ myPacket.seqNumber);
+    	    		// generate the init location
+    	    		if (LocalClient.maze.isClientAdded(this))
+    	    		{
+    	    			myPacket.point = this.getPoint();
+    	    		}
+    	    		else
+    	    		{
+	    	    		myPacket.point = LocalClient.maze.getInitClientPoint(this);
+	    	    		InitPoint = myPacket.point;
+    	    		}
+    	    		
+    	    		_outStream.writeObject(myPacket);
+    	    		// put myself on the Q
+    	    		// need to remove duplicates
+    	    		// Need to make this atomic
+    	    		synchronized(this)
+    	    		{
+    	    			LocalClient._eventQ.offer(myPacket);
+    		    		if (myPacket.seqNumber > LocalClient._curSeqNumber )
+    		    		{
+    		    			LocalClient._curSeqNumber = myPacket.seqNumber;
+    		    		}
+    	    		}
+    		} catch (IOException e) {
+    			// TODO Auto-generated catch block
+    			e.printStackTrace();
+    		}
         }
         
         public void run() {
@@ -224,10 +265,15 @@ public abstract class LocalClient extends Client implements Runnable{
 //							e.printStackTrace();
 //						}
 	        		}
-    				else if (_eventQ.peek().seqNumber == _curSeqNumber)
+    				else if ( (_eventQ.size() != 0) && (_eventQ.peek().seqNumber <= _curSeqNumber))
 	        		{
-	        			_curSeqNumber++;
+    					
 						packet = _eventQ.poll();
+						
+						if (packet.seqNumber == _curSeqNumber)
+						{
+							_curSeqNumber++;
+						}
 
 		        		if (packet != null) {
 		        			int eventCode = packet.GetClientEvent().GetEventCode();
@@ -242,7 +288,10 @@ public abstract class LocalClient extends Client implements Runnable{
 							else
 							{
 								// init packet doesn't need to be ordered
-								_curSeqNumber -- ;
+								if (packet.seqNumber == _curSeqNumber)
+								{
+									_curSeqNumber--;
+								}
 								//synchronized(this)
 								//{
 								String name = packet.GetName();
@@ -251,13 +300,16 @@ public abstract class LocalClient extends Client implements Runnable{
 								if (!name.equals(this.getName()))
 								{
 									System.out.println("creating remote client: " + name);
-			        				LocalClient.maze.addClient(new RemoteClient(name));
+			        				//LocalClient.maze.addClient(new RemoteClient(name));
+									LocalClient.maze.addClientToPoint(new RemoteClient(name), packet.point);
+									
 								}
 								else 
 								{
 									// create the gui client
 									System.out.println("creating GUI client: " + this.getName());
-									LocalClient.maze.addClient((GUIClient)this);
+									//LocalClient.maze.addClient((GUIClient)this);
+									LocalClient.maze.addClientToPoint((GUIClient)this, LocalClient.InitPoint);
 								}
 								
 								// reset the RandGen to be consistent

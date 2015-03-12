@@ -11,6 +11,8 @@ public class Packet implements Serializable{
 	// Sequence number
 	public long seqNumber = -1;
 	
+	// position, only for init
+	public Point point;
 	// event of the package
 
 	private ClientEvent _event; 
@@ -18,6 +20,7 @@ public class Packet implements Serializable{
 	public Packet()
 	{
 		this._event = null;
+		this.point = null;
 		this._name = "";
 	}
 	

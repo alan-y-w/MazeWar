@@ -215,6 +215,32 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
         	}
         }
         
+        public synchronized void addClientToPoint(Client client, Point point) {
+        	if (!clientMap.containsKey(client))
+        	{
+                assert(client != null);
+                addClient(client, point);
+        	}
+        }
+        
+        // Use the random number generator to get an init point for the client
+        public Point getInitClientPoint(Client client)
+        {
+            // Pick a random starting point, and check to see if it is already occupied
+            
+            long pasedSeed = Long.parseLong(client.getName(), 36);
+            //System.out.println(client.getName() +" Seed: "+ pasedSeed);
+            randomGen = new Random(pasedSeed);
+            Point point = new Point(randomGen.nextInt(maxX),randomGen.nextInt(maxY));
+            CellImpl cell = getCellImpl(point);
+            // Repeat until we find an empty cell
+            while(cell.getContents() != null) {
+                    point = new Point(randomGen.nextInt(maxX),randomGen.nextInt(maxY));
+                    cell = getCellImpl(point);
+            } 
+            return point;
+        }
+        
         public synchronized Point getClientPoint(Client client) {
                 assert(client != null);
                 Object o = clientMap.get(client);
@@ -310,6 +336,10 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
        
         public synchronized Iterator getClients() {
                 return clientMap.keySet().iterator();
+        }
+        
+        public synchronized boolean isClientAdded(Client client) {
+            return clientMap.containsKey(client);
         }
         
         

@@ -25,34 +25,41 @@ public class ClientReceive implements Runnable {
 
     public void run() {
     	// send my own name
+    	// run this only when initializing
     	System.out.println("Send init packet to Server: "+ this._myName);
     	try {
-    		synchronized(this)
-    		{
+    		
 	    		Packet myPacket = LocalClient.GetSequenceNumber(new Packet(this._myName, ClientEvent.init));
 	    		System.out.println("Obtain seq number: "+ myPacket.seqNumber);
 	    		_outStream.writeObject(myPacket);
 	    		// put myself on the Q
 	    		// need to remove duplicates
 	    		// Need to make this atomic
-    			LocalClient._eventQ.offer(myPacket);
-	    		if (myPacket.seqNumber > LocalClient._curSeqNumber )
+	    		synchronized(this)
 	    		{
-	    			LocalClient._curSeqNumber = myPacket.seqNumber;
+	    			LocalClient._eventQ.offer(myPacket);
+		    		if (myPacket.seqNumber > LocalClient._curSeqNumber )
+		    		{
+		    			LocalClient._curSeqNumber = myPacket.seqNumber;
+		    		}
 	    		}
-    		}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     	
-    	// enqueue packets
+    	// stays in the loop to enqueue incoming packets
     	Packet packetFromPeer = null;
         try {
 			while (true) {
-				synchronized(this){
-				packetFromPeer = (Packet) _inStream.readObject();
-				LocalClient._eventQ.offer(packetFromPeer);
+				
+					packetFromPeer = (Packet) _inStream.readObject();
+					synchronized(this){
+						LocalClient._eventQ.offer(packetFromPeer);
+						if (packetFromPeer.seqNumber > LocalClient._curSeqNumber )
+			    		{
+			    			LocalClient._curSeqNumber = packetFromPeer.seqNumber;
+			    		}
 				}
 			}
 		} catch (ClassNotFoundException | IOException e) {

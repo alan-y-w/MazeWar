@@ -90,6 +90,37 @@ public abstract class LocalClient extends Client implements Runnable{
 				}
         }
         
+        public void SendPacket(Packet packet)
+        {
+        	// get a sequence number
+        	packet = LocalClient.GetSequenceNumber(packet);
+    		
+        	// put it on my own Q
+        	synchronized(this)
+        	{
+	        	LocalClient._eventQ.offer(packet);
+	        	if (packet.seqNumber > LocalClient._curSeqNumber )
+	    		{
+	    			LocalClient._curSeqNumber = packet.seqNumber;
+	    		}
+        	}
+        	// broadcast it
+        	BroadCastToPeers(packet);
+        }
+        
+        public void BroadCastToPeers(Packet packet)
+        {
+        	for (ObjectOutputStream out : _peerOutputStreamList)
+        	{
+        		try {
+					out.writeObject(packet);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+        	}
+        }
+        
         public static Packet GetSequenceNumber(Packet packet)
         {
         	Packet retPacket = null;
@@ -181,15 +212,17 @@ public abstract class LocalClient extends Client implements Runnable{
         	
         	while (true)
         	{
+        		// lock the Q access
     			synchronized(this){
     				if (_eventQ.size() == 0)// the Q is empty, sleep and wait for more requests
 	        		{
-	        			try {
-							Thread.sleep(1);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+    					continue;
+//	        			try {
+//							Thread.sleep(1);
+//						} catch (InterruptedException e) {
+//							// TODO Auto-generated catch block
+//							e.printStackTrace();
+//						}
 	        		}
     				else if (_eventQ.peek().seqNumber == _curSeqNumber)
 	        		{
@@ -210,8 +243,8 @@ public abstract class LocalClient extends Client implements Runnable{
 							{
 								// init packet doesn't need to be ordered
 								_curSeqNumber -- ;
-								synchronized(this)
-								{
+								//synchronized(this)
+								//{
 								String name = packet.GetName();
 								
 								// if not already added as a client
@@ -229,7 +262,7 @@ public abstract class LocalClient extends Client implements Runnable{
 								
 								// reset the RandGen to be consistent
 								LocalClient.maze.ResetRandGen();
-								}
+								//}
 		        				// set position & orientation
 		        				// set score
 		        				//break;
@@ -244,7 +277,7 @@ public abstract class LocalClient extends Client implements Runnable{
 	        			System.out.println("Current Seq Num: "+  _curSeqNumber);
 	        			//break;
 	        		}
-        		}
+        		} // end of synchronized block
         	}
 		}
         

@@ -151,8 +151,8 @@ public class Mazewar extends JFrame {
                 
                 // Create the GUIClient and connect it to the KeyListener queue
                 guiClient = new GUIClient(name, maze);
-                String[] hostnames = {"localhost", "localhost", "localhost"};
-                int[] ports = {4555, 4556, 4557};
+                String[] hostnames = {"localhost", "localhost", "localhost", "localhost"};
+                int[] ports = {4555, 4556, 4557, 4558};
                 
                 // set guiclient's position, orientationo
                 
@@ -163,7 +163,7 @@ public class Mazewar extends JFrame {
                 //alanwu: set remote clients
                // guiClient.StartReceive();
                 guiClient.start();
-                this.addKeyListener(guiClient);
+                
                 // do this when all the other clients are done
                 // maze.addClient(guiClient);
                
@@ -173,6 +173,7 @@ public class Mazewar extends JFrame {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+                this.addKeyListener(guiClient);
 
 //                for (String client_name : remote_client_names)
 //                {
@@ -189,12 +190,12 @@ public class Mazewar extends JFrame {
                 // Use braces to force constructors not to be called at the beginning of the
                 // constructor.
                 // alanwu: commented out for now
-                {
+//                {
                         //maze.addClient(new RobotClient("Norby"));
                         //maze.addClient(new RobotClient("Robbie"));
                         //maze.addClient(new RobotClient("Clango"));
                         //maze.addClient(new RobotClient("Marvin"));
-                }
+//                }
 
                 
                 // Create the panel that will display the maze.

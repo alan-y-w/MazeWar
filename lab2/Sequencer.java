@@ -25,7 +25,7 @@ public class Sequencer {
 	}
 	
 	public static synchronized long Get(){
-		return Sequencer._current_count;
+		return Sequencer._current_count + 1;
 	}
 	
 	public static void main(String[] args) throws IOException 

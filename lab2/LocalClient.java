@@ -100,10 +100,6 @@ public abstract class LocalClient extends Client implements Runnable{
         	synchronized(this)
         	{
 	        	LocalClient._eventQ.offer(packet);
-	        	if (packet.seqNumber > LocalClient._curSeqNumber )
-	    		{
-	    			LocalClient._curSeqNumber = packet.seqNumber;
-	    		}
         	}
         	// broadcast it
         	BroadCastToPeers(packet);
@@ -245,10 +241,6 @@ public abstract class LocalClient extends Client implements Runnable{
         }
         
         public void run() {
-			// poll the event queue and implements actions to player
-        	// special cases:
-        	// if it's an init packet, add it to the name queue
-        	// TODO: if it's a quit packet, remove the client
         	Packet packet = null;
         	
         	while (true)
@@ -258,22 +250,12 @@ public abstract class LocalClient extends Client implements Runnable{
     				if (_eventQ.size() == 0)// the Q is empty, sleep and wait for more requests
 	        		{
     					continue;
-//	        			try {
-//							Thread.sleep(1);
-//						} catch (InterruptedException e) {
-//							// TODO Auto-generated catch block
-//							e.printStackTrace();
-//						}
 	        		}
-    				else if ( (_eventQ.size() != 0) && (_eventQ.peek().seqNumber <= _curSeqNumber))
+    				else if ( (_eventQ.peek() != null) && (_eventQ.peek().seqNumber == _curSeqNumber))
 	        		{
-    					
 						packet = _eventQ.poll();
-						
-						if (packet.seqNumber == _curSeqNumber)
-						{
-							_curSeqNumber++;
-						}
+						_curSeqNumber++;
+
 
 		        		if (packet != null) {
 		        			int eventCode = packet.GetClientEvent().GetEventCode();
@@ -288,10 +270,11 @@ public abstract class LocalClient extends Client implements Runnable{
 							else
 							{
 								// init packet doesn't need to be ordered
-								if (packet.seqNumber == _curSeqNumber)
-								{
+								//if (packet.seqNumber == _curSeqNumber)
+								//{
 									_curSeqNumber--;
-								}
+//									_lastSeqNumber--;
+								//}
 								//synchronized(this)
 								//{
 								String name = packet.GetName();
@@ -325,7 +308,7 @@ public abstract class LocalClient extends Client implements Runnable{
 	        		else
 	        		{
 	        			System.out.println("Seq Number Wrong!!!");
-	        			System.out.println("Q head: "+_eventQ.peek().seqNumber);
+
 	        			System.out.println("Current Seq Num: "+  _curSeqNumber);
 	        			//break;
 	        		}

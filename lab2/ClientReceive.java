@@ -33,10 +33,15 @@ public class ClientReceive implements Runnable {
 					packetFromPeer = (Packet) _inStream.readObject();
 					synchronized(this){
 						LocalClient._eventQ.offer(packetFromPeer);
-						if (packetFromPeer.seqNumber > LocalClient._curSeqNumber )
-			    		{
-			    			LocalClient._curSeqNumber = packetFromPeer.seqNumber;
-			    		}
+						if(packetFromPeer.GetClientEvent().GetEventCode() == 5)
+						{
+							LocalClient._curSeqNumber =  packetFromPeer.seqNumber;
+						}
+						
+//						if (packetFromPeer.seqNumber > LocalClient._maxSeqNumber )
+//			    		{
+//			    			LocalClient._maxSeqNumber = packetFromPeer.seqNumber;
+//			    		}
 				}
 			}
 		} catch (ClassNotFoundException | IOException e) {

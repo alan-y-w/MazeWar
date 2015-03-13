@@ -12,7 +12,7 @@ public class Packet implements Serializable{
 	public long seqNumber = -1;
 	
 	// position, only for init
-	public Point point;
+	public DirectedPoint point;
 	// event of the package
 
 	private ClientEvent _event; 

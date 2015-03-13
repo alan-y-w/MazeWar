@@ -65,7 +65,7 @@ public abstract class LocalClient extends Client implements Runnable{
 		private static int _seqPortNum = 4444;
 	    private static String _seqHostName = "localhost";
 	    public static long _curSeqNumber = -1;
-	    public static Point InitPoint;
+	    public static DirectedPoint InitPoint;
 	    
 		/** 
          * Create a {@link Client} local to this machine.
@@ -166,7 +166,7 @@ public abstract class LocalClient extends Client implements Runnable{
         	    				
         	    				// start a new thread to handle new peer
                         		InitHandShake(_out);
-        	    				new ClientReceive(_in, _out, LocalClient._eventQ, this.getName()).start();
+        	    				new ClientReceive(_in).start();
                         	}
 
                         } catch (IOException ex) {
@@ -187,7 +187,7 @@ public abstract class LocalClient extends Client implements Runnable{
                         		}
 	                        	// start a new thread to handle new peer
 								InitHandShake(_out);
-	                        	new ClientReceive(_in, _out, LocalClient._eventQ, this.getName()).start();
+	                        	new ClientReceive(_in).start();
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -214,7 +214,7 @@ public abstract class LocalClient extends Client implements Runnable{
     	    		// generate the init location
     	    		if (LocalClient.maze.isClientAdded(this))
     	    		{
-    	    			myPacket.point = this.getPoint();
+    	    			myPacket.point = (DirectedPoint) this.getPoint();
     	    		}
     	    		else
     	    		{
@@ -224,8 +224,6 @@ public abstract class LocalClient extends Client implements Runnable{
     	    		
     	    		_outStream.writeObject(myPacket);
     	    		// put myself on the Q
-    	    		// need to remove duplicates
-    	    		// Need to make this atomic
     	    		synchronized(this)
     	    		{
     	    			LocalClient._eventQ.offer(myPacket);
@@ -251,16 +249,17 @@ public abstract class LocalClient extends Client implements Runnable{
 	        		{
     					continue;
 	        		}
+    				// "==" condition check ensures _curSeqNumber goes up without gaps
     				else if ( (_eventQ.peek() != null) && (_eventQ.peek().seqNumber == _curSeqNumber))
 	        		{
 						packet = _eventQ.poll();
-						_curSeqNumber++;
-
+						
 
 		        		if (packet != null) {
 		        			int eventCode = packet.GetClientEvent().GetEventCode();
 		        			if (eventCode != 5)
 		        			{
+		        				_curSeqNumber++;
 								// implement it to the right client
 			        			if (Client.DictOfClients.containsKey(packet.GetName()))
 			        			{
@@ -270,13 +269,7 @@ public abstract class LocalClient extends Client implements Runnable{
 							else
 							{
 								// init packet doesn't need to be ordered
-								//if (packet.seqNumber == _curSeqNumber)
-								//{
-									_curSeqNumber--;
-//									_lastSeqNumber--;
-								//}
-								//synchronized(this)
-								//{
+								// therefore do not increment the _curSeqNumber
 								String name = packet.GetName();
 								
 								// if not already added as a client
@@ -297,10 +290,6 @@ public abstract class LocalClient extends Client implements Runnable{
 								
 								// reset the RandGen to be consistent
 								LocalClient.maze.ResetRandGen();
-								//}
-		        				// set position & orientation
-		        				// set score
-		        				//break;
 							}
 						
 		        		}
@@ -308,7 +297,6 @@ public abstract class LocalClient extends Client implements Runnable{
 	        		else
 	        		{
 	        			System.out.println("Seq Number Wrong!!!");
-
 	        			System.out.println("Current Seq Num: "+  _curSeqNumber);
 	        			//break;
 	        		}

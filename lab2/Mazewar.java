@@ -153,7 +153,7 @@ public class Mazewar extends JFrame {
                 guiClient = new GUIClient(name, maze);
                 String[] hostnames = {"localhost", "localhost", "localhost", "localhost"};
                 int[] ports = {4555, 4556, 4557, 4558};
-                
+
                 // set guiclient's position, orientationo
                 
                 guiClient.ConnectToPeer(hostnames, ports);

@@ -11,37 +11,27 @@ import java.util.Queue;
 public class ClientReceive implements Runnable {
     private Thread _t;
     private ObjectInputStream _inStream;
-    private ObjectOutputStream _outStream;
-    private Queue<Packet> _eventQ;
-    private String _myName;
 
-    public ClientReceive(ObjectInputStream _inStream, ObjectOutputStream _outStream, Queue<Packet> _eventQ, String _name) {
-        this._eventQ = _eventQ;
+    public ClientReceive(ObjectInputStream _inStream ) {
         this._inStream = _inStream;
-        this._outStream = _outStream;
-        this._myName = _name;
         System.out.println("Created new Thread to listen to Server");
     }
 
     public void run() {
-    	
     	// stays in the loop to enqueue incoming packets
     	Packet packetFromPeer = null;
         try {
 			while (true) {
 				
-					packetFromPeer = (Packet) _inStream.readObject();
-					synchronized(this){
-						LocalClient._eventQ.offer(packetFromPeer);
-						if(packetFromPeer.GetClientEvent().GetEventCode() == 5)
-						{
-							LocalClient._curSeqNumber =  packetFromPeer.seqNumber;
-						}
-						
-//						if (packetFromPeer.seqNumber > LocalClient._maxSeqNumber )
-//			    		{
-//			    			LocalClient._maxSeqNumber = packetFromPeer.seqNumber;
-//			    		}
+				packetFromPeer = (Packet) _inStream.readObject();
+				synchronized(this){
+					LocalClient._eventQ.offer(packetFromPeer);
+					// only set the _curSeqNumber to latest from the sequencer when it's init
+					// packet
+//					if(packetFromPeer.GetClientEvent().GetEventCode() == 5)
+//					{
+//						LocalClient._curSeqNumber =  packetFromPeer.seqNumber;
+//					}
 				}
 			}
 		} catch (ClassNotFoundException | IOException e) {

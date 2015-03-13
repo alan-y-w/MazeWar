@@ -59,7 +59,7 @@ public abstract class Maze {
      */
     public abstract void addClient(Client client);
     public abstract void addClientToPoint(Client client, Point point);
-    public abstract Point getInitClientPoint(Client client);
+    public abstract DirectedPoint getInitClientPoint(Client client);
     public abstract boolean isClientAdded(Client client);
     /** 
      * Create a new {@link Projectile} from the specified {@link Client}

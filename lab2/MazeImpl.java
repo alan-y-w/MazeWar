@@ -373,27 +373,27 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
         public void shootMissile() {
                 Collection deadPrj = new HashSet();
                 //while(true) {
-                        if(!projectileMap.isEmpty()) {
-                                Iterator it = projectileMap.keySet().iterator();
-                                synchronized(projectileMap) {
-                                        while(it.hasNext()) {   
-                                                Object o = it.next();
-                                                assert(o instanceof Projectile);
-                                                // if this projectile hasn't already  been destroyed by another
-                                                if (((Projectile)o).remove_flag == false)
-                                                    deadPrj.addAll(moveProjectile((Projectile)o));
-                                        }               
-                                        it = deadPrj.iterator();
-                                        while(it.hasNext()) {
-                                                Object o = it.next();
-                                                assert(o instanceof Projectile);
-                                                Projectile prj = (Projectile)o;
-                                                projectileMap.remove(prj);
-                                                clientFired.remove(prj.getOwner());
-                                        }
-                                        deadPrj.clear();
+                if(!projectileMap.isEmpty()) {
+                        Iterator it = projectileMap.keySet().iterator();
+                        synchronized(projectileMap) {
+                                while(it.hasNext()) {   
+                                        Object o = it.next();
+                                        assert(o instanceof Projectile);
+                                        // if this projectile hasn't already  been destroyed by another
+                                        if (((Projectile)o).remove_flag == false)
+                                            deadPrj.addAll(moveProjectile((Projectile)o));
+                                }               
+                                it = deadPrj.iterator();
+                                while(it.hasNext()) {
+                                        Object o = it.next();
+                                        assert(o instanceof Projectile);
+                                        Projectile prj = (Projectile)o;
+                                        projectileMap.remove(prj);
+                                        clientFired.remove(prj.getOwner());
                                 }
+                                deadPrj.clear();
                         }
+                }
                         //sleeping will now be done by the Server
                         /*try {
                                 thread.sleep(200);

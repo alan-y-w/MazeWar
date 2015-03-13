@@ -46,8 +46,7 @@ public class Sequencer {
 						ObjectInputStream _in = new ObjectInputStream(serverSocket.getInputStream());
 	                	
 					    new SequencerReceive(_in, _out).start();
-//						Sequencer._peerOutputStreamList.add(_out);
-//						Sequencer._peerInputStreamList.add(_in);
+
 			    	}
 				} catch (IOException e) {
 					// TODO Auto-generated catch block

@@ -146,6 +146,14 @@ public abstract class LocalClient extends Client implements Runnable{
                 	for (int port : ports) {
                         try {
                         	_serverSocket = new ServerSocket(port);
+                        	
+                        	// if I'm the first peer starting the game, I become the one 
+                        	// sends missile ticks
+                        	if (port == 4555)
+                        	{
+                        		MissleTickStart();
+                        	}
+                        	
                         	while (true)
                         	{
                         		// loop to listen to incoming new client requests
@@ -155,13 +163,12 @@ public abstract class LocalClient extends Client implements Runnable{
                         		ObjectInputStream _in ;
                         		synchronized(this)
                         		{
-        	                	Socket serverSocket = _serverSocket.accept();
-//        	                	System.out.println("Server accepted!");
-        	                	 _out = new ObjectOutputStream (serverSocket.getOutputStream());
-								 _in = new ObjectInputStream(serverSocket.getInputStream());
-        	                	
-        	                	_peerOutputStreamList.add(_out);
-        	    				//_peerInputStreamList.add(_in);
+	        	                	Socket serverSocket = _serverSocket.accept();
+	//        	                	System.out.println("Server accepted!");
+	        	                	 _out = new ObjectOutputStream (serverSocket.getOutputStream());
+									 _in = new ObjectInputStream(serverSocket.getInputStream());
+	        	                	
+	        	                	_peerOutputStreamList.add(_out);
                         		}
         	    				
         	    				// start a new thread to handle new peer
@@ -177,13 +184,12 @@ public abstract class LocalClient extends Client implements Runnable{
                         		ObjectInputStream _in ;
 								synchronized(this)
                         		{
-								clientSocket = new Socket(hostnames[count], ports[count]);
-								 _out = new ObjectOutputStream (clientSocket.getOutputStream());
-								 _in = new ObjectInputStream(clientSocket.getInputStream());
-								_peerOutputStreamList.add(_out);
-								//_peerInputStreamList.add(_in);
-	                        	
-	                        	System.out.println("Connected as client! port: " +  ports[count]);
+									clientSocket = new Socket(hostnames[count], ports[count]);
+									 _out = new ObjectOutputStream (clientSocket.getOutputStream());
+									 _in = new ObjectInputStream(clientSocket.getInputStream());
+									_peerOutputStreamList.add(_out);
+		                        	
+		                        	System.out.println("Connected as client! port: " +  ports[count]);
                         		}
 	                        	// start a new thread to handle new peer
 								InitHandShake(_out);
@@ -202,42 +208,6 @@ public abstract class LocalClient extends Client implements Runnable{
         	thread.start();
         }
         
-        private void InitHandShake(ObjectOutputStream _outStream)
-        {
-        	// send my own name
-        	// run this only when initializing
-        	System.out.println("Send init packet to Server: "+ this.getName());
-        	try {
-        		
-    	    		Packet myPacket = LocalClient.GetSequenceNumber(new Packet(this.getName(), ClientEvent.init));
-    	    		System.out.println("Obtain seq number: "+ myPacket.seqNumber);
-    	    		// generate the init location
-    	    		if (LocalClient.maze.isClientAdded(this))
-    	    		{
-    	    			myPacket.point = (DirectedPoint) this.getPoint();
-    	    		}
-    	    		else
-    	    		{
-	    	    		myPacket.point = LocalClient.maze.getInitClientPoint(this);
-	    	    		InitPoint = myPacket.point;
-    	    		}
-    	    		
-    	    		_outStream.writeObject(myPacket);
-    	    		// put myself on the Q
-    	    		synchronized(this)
-    	    		{
-    	    			LocalClient._eventQ.offer(myPacket);
-    		    		if (myPacket.seqNumber > LocalClient._curSeqNumber )
-    		    		{
-    		    			LocalClient._curSeqNumber = myPacket.seqNumber;
-    		    		}
-    	    		}
-    		} catch (IOException e) {
-    			// TODO Auto-generated catch block
-    			e.printStackTrace();
-    		}
-        }
-        
         public void run() {
         	Packet packet = null;
         	
@@ -252,9 +222,10 @@ public abstract class LocalClient extends Client implements Runnable{
     				// "==" condition check ensures _curSeqNumber goes up without gaps
     				else if ( (_eventQ.peek() != null) && (_eventQ.peek().seqNumber == _curSeqNumber))
 	        		{
+    					System.out.println("Curent Seq Num: "+_curSeqNumber);
+	        			System.out.println("Packet Seq Num: " +_eventQ.peek().seqNumber);
+	        			
 						packet = _eventQ.poll();
-						
-
 		        		if (packet != null) {
 		        			int eventCode = packet.GetClientEvent().GetEventCode();
 		        			if (eventCode != 5)
@@ -297,17 +268,69 @@ public abstract class LocalClient extends Client implements Runnable{
 	        		else
 	        		{
 	        			System.out.println("Seq Number Wrong!!!");
-	        			System.out.println("Current Seq Num: "+  _curSeqNumber);
-	        			//break;
+	        			System.out.println("->Packet Seq Num: " +_eventQ.peek().seqNumber);
+	        			System.out.println("->Current Seq Num: "+  _curSeqNumber);
+	        			try {
+	        				// earlier pacekts not yet arrived, wait a bit
+							Thread.sleep(1);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}//break;
 	        		}
         		} // end of synchronized block
         	}
 		}
         
-        private void ImplementPacket(Packet packet, int EventCode)
+        public void start ()
         {
-        	Set<String> _clientNames = DictOfClients.keySet();
-        	
+           if (_t == null)
+           {
+              _t = new Thread (this, "ServerListener");
+              _t.start ();
+           }
+        }
+
+		private void InitHandShake(ObjectOutputStream _outStream)
+		{
+			// send my own name
+			// run this only when initializing
+			System.out.println("Send init packet to Server: "+ this.getName());
+			try {
+				
+		    		Packet myPacket = LocalClient.GetSequenceNumber(new Packet(this.getName(), ClientEvent.init));
+		    		System.out.println("Obtain seq number: "+ myPacket.seqNumber);
+		    		// generate the init location
+		    		if (LocalClient.maze.isClientAdded(this))
+		    		{
+		    			myPacket.point = (DirectedPoint) this.getPoint();
+		    		}
+		    		else
+		    		{
+			    		myPacket.point = LocalClient.maze.getInitClientPoint(this);
+			    		InitPoint = myPacket.point;
+		    		}
+		    		
+		    		_outStream.writeObject(myPacket);
+		    		// put myself on the Q
+		    		synchronized(this)
+		    		{
+		    			LocalClient._eventQ.offer(myPacket);
+			    		if (myPacket.seqNumber > LocalClient._curSeqNumber )
+			    		{
+			    			LocalClient._curSeqNumber = myPacket.seqNumber;
+			    		}
+		    		}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		private void ImplementPacket(Packet packet, int EventCode)
+		{
+			Set<String> _clientNames = DictOfClients.keySet();
+			
 			Client _client = (Client) Client.DictOfClients.get(packet.GetName());
 			switch (EventCode){	
 			case 0:
@@ -326,24 +349,41 @@ public abstract class LocalClient extends Client implements Runnable{
 				_client.fire();
 				break;
 			case 6: // missile
-				for(String _clientName: _clientNames) {
-					Client.DictOfClients.get(_clientName).missileTick();
-					//System.out.print("Client got missile tick");
-				}
+				_client.maze.shootMissile();
+
+//				for(String _clientName: _clientNames) {
+//					Client.DictOfClients.get(_clientName).missileTick();
+//					System.out.print("Client got missile tick");
+//				}
 				break;
 			default:
 				break;
 				
-        	}
-        }
-        
-        public void start ()
-        {
-           if (_t == null)
-           {
-              _t = new Thread (this, "ServerListener");
-              _t.start ();
-           }
-        }
+			}
+		}
+
+		private void MissleTickStart()
+		{
+			Thread thread = new Thread()
+			{
+				public void run(){
+					try {
+						Thread.sleep(2000);
+			            while (true) {
+
+		            		SendPacket(new Packet(this.getName(), ClientEvent.missileTick));
+			            	//System.out.print("sending tick " + missileTickPacket.GetClientEvent().GetEventCode());
+			                Thread.sleep(200);
+		    	    		
+			            }
+			        }
+			        catch (Exception e) {
+			            // shouldn't happen
+			        }
+				}
+			};
+			thread.start();
+			thread.setName(this.getName());
+		}
 }
 

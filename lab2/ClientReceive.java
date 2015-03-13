@@ -26,12 +26,6 @@ public class ClientReceive implements Runnable {
 				packetFromPeer = (Packet) _inStream.readObject();
 				synchronized(this){
 					LocalClient._eventQ.offer(packetFromPeer);
-					// only set the _curSeqNumber to latest from the sequencer when it's init
-					// packet
-//					if(packetFromPeer.GetClientEvent().GetEventCode() == 5)
-//					{
-//						LocalClient._curSeqNumber =  packetFromPeer.seqNumber;
-//					}
 				}
 			}
 		} catch (ClassNotFoundException | IOException e) {

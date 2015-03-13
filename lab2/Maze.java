@@ -61,6 +61,7 @@ public abstract class Maze {
     public abstract void addClientToPoint(Client client, Point point);
     public abstract DirectedPoint getInitClientPoint(Client client);
     public abstract boolean isClientAdded(Client client);
+    public abstract void shootMissile();
     /** 
      * Create a new {@link Projectile} from the specified {@link Client}
      * @param client {@link Client} that is firing.

@@ -28,6 +28,7 @@ public abstract class Client {
 		// alanwu: hashtable for client name - client lookup
 		public static Hashtable<String, Client> DictOfClients = new Hashtable<String, Client>();
         public static MazeImpl myMazeImpl;
+        public static ScoreTableModel scoreTable;  
 		/**
          * Register this {@link Client} as being contained by the specified
          * {@link Maze}.  Naturally a {@link Client} cannot be registered with

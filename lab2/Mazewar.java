@@ -123,7 +123,7 @@ public class Mazewar extends JFrame {
         /** 
          * The place where all the pieces are put together. 
          */
-        public Mazewar() {
+        public Mazewar(String _name) {
                 super("ECE419 Mazewar");
                 consolePrintLn("ECE419 Mazewar started!");
                 
@@ -139,12 +139,14 @@ public class Mazewar extends JFrame {
                 ScoreTableModel scoreModel = new ScoreTableModel();
                 assert(scoreModel != null);
                 maze.addMazeListener(scoreModel);
+                Client.scoreTable = scoreModel;
                 
                 // Throw up a dialog to get the GUIClient name.
-                String name = JOptionPane.showInputDialog("Enter your name");
-                if((name == null) || (name.length() == 0)) {
-                  Mazewar.quit();
-                }
+//                String name = JOptionPane.showInputDialog("Enter your name");
+//                if((name == null) || (name.length() == 0)) {
+//                  Mazewar.quit();
+//                }
+                String name = _name;
                 
                 // You may want to put your network initialization code somewhere in
                 // here.
@@ -266,6 +268,6 @@ public class Mazewar extends JFrame {
         public static void main(String args[]) {
 
                 /* Create the GUI */
-                new Mazewar();
+                new Mazewar(args[0]);
         }
 }

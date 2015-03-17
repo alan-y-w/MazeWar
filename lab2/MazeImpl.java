@@ -215,11 +215,11 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
         	}
         }
         
-        public synchronized void addClientToPoint(Client client, Point point) {
+        public synchronized void addClientToPoint(Client client, Point point, int score) {
         	if (!clientMap.containsKey(client))
         	{
                 assert(client != null);
-                addClientToDirectedPoint(client, point);
+                addClientToDirectedPoint(client, point, score);
         	}
         }
         
@@ -488,9 +488,9 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
                 client.registerMaze(this);
                 client.addClientListener(this);
                 update();
-                notifyClientAdd(client);
+                notifyClientAdd(client, 0);
         }
-        private synchronized void addClientToDirectedPoint(Client client, Point point) {
+        private synchronized void addClientToDirectedPoint(Client client, Point point, int score) {
             assert(client != null);
             assert(checkBounds(point));
             CellImpl cell = getCellImpl(point);
@@ -498,8 +498,8 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
             clientMap.put(client, point);
             client.registerMaze(this);
             client.addClientListener(this);
+            notifyClientAdd(client, score);
             update();
-            notifyClientAdd(client);
     }
         
         /**
@@ -663,14 +663,14 @@ public class MazeImpl extends Maze implements Serializable, ClientListener{
          * {@link Client} has been added.
          * @param c The {@link Client} that was added.
          */
-        private void notifyClientAdd(Client c) {
+        private void notifyClientAdd(Client c, int score) {
                 assert(c != null);
                 Iterator i = listenerSet.iterator();
                 while (i.hasNext()) {
                         Object o = i.next();
                         assert(o instanceof MazeListener);
                         MazeListener ml = (MazeListener)o;
-                        ml.clientAdded(c);
+                        ml.clientAdded(c, score);
                 } 
         }
         

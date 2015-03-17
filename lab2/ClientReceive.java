@@ -14,7 +14,7 @@ public class ClientReceive implements Runnable {
 
     public ClientReceive(ObjectInputStream _inStream ) {
         this._inStream = _inStream;
-        System.out.println("Created new Thread to listen to Server");
+//        System.out.println("Created new Thread to listen to Server");
     }
 
     public void run() {

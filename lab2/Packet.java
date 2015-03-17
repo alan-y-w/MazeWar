@@ -11,6 +11,9 @@ public class Packet implements Serializable{
 	// Sequence number
 	public long seqNumber = -1;
 	
+	// score
+	public int score = 0;
+	
 	// position, only for init
 	public DirectedPoint point;
 	// event of the package

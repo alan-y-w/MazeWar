@@ -66,6 +66,7 @@ public abstract class LocalClient extends Client implements Runnable{
 	    private static String _seqHostName = "localhost";
 	    public static long _curSeqNumber = -1;
 	    public static DirectedPoint InitPoint;
+	    public static int InitScore;
 	    
 		/** 
          * Create a {@link Client} local to this machine.
@@ -222,8 +223,8 @@ public abstract class LocalClient extends Client implements Runnable{
     				// "==" condition check ensures _curSeqNumber goes up without gaps
     				else if ( (_eventQ.peek() != null) && (_eventQ.peek().seqNumber == _curSeqNumber))
 	        		{
-    					System.out.println("Curent Seq Num: "+_curSeqNumber);
-	        			System.out.println("Packet Seq Num: " +_eventQ.peek().seqNumber);
+//    					System.out.println("Curent Seq Num: "+_curSeqNumber);
+//	        			System.out.println("Packet Seq Num: " +_eventQ.peek().seqNumber);
 	        			
 						packet = _eventQ.poll();
 		        		if (packet != null) {
@@ -247,16 +248,16 @@ public abstract class LocalClient extends Client implements Runnable{
 								if (!name.equals(this.getName()))
 								{
 									System.out.println("creating remote client: " + name);
-			        				//LocalClient.maze.addClient(new RemoteClient(name));
-									LocalClient.maze.addClientToPoint(new RemoteClient(name), packet.point);
-									
+									LocalClient.maze.addClientToPoint(new RemoteClient(name), packet.point, packet.score);
 								}
 								else 
 								{
 									// create the gui client
-									System.out.println("creating GUI client: " + this.getName());
-									//LocalClient.maze.addClient((GUIClient)this);
-									LocalClient.maze.addClientToPoint((GUIClient)this, LocalClient.InitPoint);
+									if (!LocalClient.maze.isClientAdded(this))
+									{
+										System.out.println("creating GUI client: " + this.getName());
+										LocalClient.maze.addClientToPoint((GUIClient)this, LocalClient.InitPoint, 0);
+									}
 								}
 								
 								// reset the RandGen to be consistent
@@ -267,7 +268,7 @@ public abstract class LocalClient extends Client implements Runnable{
 	        		}
 	        		else
 	        		{
-	        			System.out.println("Seq Number Wrong!!!");
+	        			System.out.println("Seq Number out of order!!!");
 	        			System.out.println("->Packet Seq Num: " +_eventQ.peek().seqNumber);
 	        			System.out.println("->Current Seq Num: "+  _curSeqNumber);
 	        			try {
@@ -295,11 +296,11 @@ public abstract class LocalClient extends Client implements Runnable{
 		{
 			// send my own name
 			// run this only when initializing
-			System.out.println("Send init packet to Server: "+ this.getName());
+//			System.out.println("Send init packet to Server: "+ this.getName());
 			try {
 				
 		    		Packet myPacket = LocalClient.GetSequenceNumber(new Packet(this.getName(), ClientEvent.init));
-		    		System.out.println("Obtain seq number: "+ myPacket.seqNumber);
+//		    		System.out.println("Obtain seq number: "+ myPacket.seqNumber);
 		    		// generate the init location
 		    		if (LocalClient.maze.isClientAdded(this))
 		    		{
@@ -310,6 +311,8 @@ public abstract class LocalClient extends Client implements Runnable{
 			    		myPacket.point = LocalClient.maze.getInitClientPoint(this);
 			    		InitPoint = myPacket.point;
 		    		}
+		    		
+		    		myPacket.score = Client.scoreTable.getScore(this);
 		    		
 		    		_outStream.writeObject(myPacket);
 		    		// put myself on the Q

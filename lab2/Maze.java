@@ -58,7 +58,7 @@ public abstract class Maze {
      * @param client {@link Client} to be added to the {@link Maze}.
      */
     public abstract void addClient(Client client);
-    public abstract void addClientToPoint(Client client, Point point);
+    public abstract void addClientToPoint(Client client, Point point, int score);
     public abstract DirectedPoint getInitClientPoint(Client client);
     public abstract boolean isClientAdded(Client client);
     public abstract void shootMissile();

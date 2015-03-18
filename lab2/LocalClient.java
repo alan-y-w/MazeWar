@@ -8,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Vector;
@@ -58,16 +59,20 @@ public abstract class LocalClient extends Client implements Runnable{
 		//private Vector<ObjectInputStream> _peerInputStreamList = new Vector<ObjectInputStream>();
 		private Vector<ObjectOutputStream> _peerOutputStreamList = new Vector<ObjectOutputStream>();
 		private static LinkedBlockingQueue<String> _peerNames = new LinkedBlockingQueue<String>(); 
+		public static Hashtable<Integer, ObjectOutputStream> DictOfOutStreams = new Hashtable<Integer, ObjectOutputStream>();
+		public static Hashtable<Integer, ObjectInputStream> DictOfInStreams = new Hashtable<Integer, ObjectInputStream>();
+		public static Hashtable<Integer, Socket> DictOfSockets = new Hashtable<Integer, Socket>();
 		protected static PriorityQueue<Packet> _eventQ = new PriorityQueue<Packet>(10, new PacketComparator());
 		private static Maze maze;
 		private static ObjectInputStream _seqInStream;
 		private static ObjectOutputStream _seqOutStream;
+		private static Socket seqSocket;
 		private static int _seqPortNum = 4444;
 	    private static String _seqHostName = "localhost";
 	    public static long _curSeqNumber = -1;
 	    public static DirectedPoint InitPoint;
 	    public static int InitScore;
-	    
+	    public int myPortNum = 0;
 		/** 
          * Create a {@link Client} local to this machine.
          * @param name The name of this {@link Client}.
@@ -81,13 +86,12 @@ public abstract class LocalClient extends Client implements Runnable{
                 // temp code
                 // TODO: make this distributed
                 try {
-					Socket seqSocket = new Socket(_seqHostName, _seqPortNum);
+                	LocalClient.seqSocket = new Socket(_seqHostName, _seqPortNum);
 					LocalClient._seqOutStream = new ObjectOutputStream (seqSocket.getOutputStream());
 					LocalClient._seqInStream = new ObjectInputStream(seqSocket.getInputStream());
-					
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					//e.printStackTrace();
 					System.out.println("Can't connect to Sequencer Service!");
 				}
         }
@@ -108,15 +112,27 @@ public abstract class LocalClient extends Client implements Runnable{
         
         public void BroadCastToPeers(Packet packet)
         {
-        	for (ObjectOutputStream out : _peerOutputStreamList)
+        	ObjectOutputStream outRemove = null;
+        	synchronized(this)
         	{
-        		try {
-					out.writeObject(packet);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+	        	for (ObjectOutputStream out : _peerOutputStreamList)
+	        	{
+	        		try {
+						out.writeObject(packet);
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						//e.printStackTrace();
+						System.out.println("Cannot broadcast");
+						outRemove = out;
+					}
+	        	}
+	        	
+	        	if (outRemove != null)
+	        	{
+	        		_peerOutputStreamList.remove(outRemove);
+	        	}
         	}
+        	
         }
         
         public static Packet GetSequenceNumber(Packet packet)
@@ -125,8 +141,8 @@ public abstract class LocalClient extends Client implements Runnable{
         	try {
         		synchronized(LocalClient.class)
         		{
-				LocalClient._seqOutStream.writeObject(packet);
-				retPacket = (Packet) LocalClient._seqInStream.readObject();
+					LocalClient._seqOutStream.writeObject(packet);
+					retPacket = (Packet) LocalClient._seqInStream.readObject();
         		}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -162,16 +178,19 @@ public abstract class LocalClient extends Client implements Runnable{
 //                        		System.out.println("Server waiting...");
                         		ObjectOutputStream _out ;
                         		ObjectInputStream _in ;
+                        		Socket serverSocket ;
                         		synchronized(this)
                         		{
-	        	                	Socket serverSocket = _serverSocket.accept();
+                        			serverSocket = _serverSocket.accept();
 	//        	                	System.out.println("Server accepted!");
 	        	                	 _out = new ObjectOutputStream (serverSocket.getOutputStream());
 									 _in = new ObjectInputStream(serverSocket.getInputStream());
-	        	                	
-	        	                	_peerOutputStreamList.add(_out);
+	        	                	 _peerOutputStreamList.add(_out);
                         		}
-        	    				
+                        		DictOfOutStreams.put(port, _out);
+                        		DictOfInStreams.put(port, _in);
+                        		DictOfSockets.put(port, serverSocket);
+                        		myPortNum = port;
         	    				// start a new thread to handle new peer
                         		InitHandShake(_out);
         	    				new ClientReceive(_in).start();
@@ -192,6 +211,11 @@ public abstract class LocalClient extends Client implements Runnable{
 		                        	
 		                        	System.out.println("Connected as client! port: " +  ports[count]);
                         		}
+								
+								DictOfOutStreams.put(port, _out);
+                        		DictOfInStreams.put(port, _in);
+                        		DictOfSockets.put(port, clientSocket);
+                        		
 	                        	// start a new thread to handle new peer
 								InitHandShake(_out);
 	                        	new ClientReceive(_in).start();
@@ -326,7 +350,7 @@ public abstract class LocalClient extends Client implements Runnable{
 		    		}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				//e.printStackTrace();
 			}
 		}
 
@@ -353,7 +377,24 @@ public abstract class LocalClient extends Client implements Runnable{
 				break;
 			case 6: // missile
 				_client.maze.shootMissile();
-
+				break;
+			case 7: // quit
+				synchronized(this)
+				{
+					_peerOutputStreamList.remove(Client.DictOfClients.get(packet.GetName()));
+					_client.maze.removeClient(Client.DictOfClients.get(packet.GetName()));
+					Client.DictOfClients.remove(packet.GetName());
+//					int portNum = packet.score;
+//					try {
+//						//DictOfOutStreams.get(portNum).close();
+//						//DictOfInStreams.get(portNum).close();
+//						//DictOfSockets.get(portNum).close();
+//					} catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						//e.printStackTrace();
+//					}
+				}
+				
 //				for(String _clientName: _clientNames) {
 //					Client.DictOfClients.get(_clientName).missileTick();
 //					System.out.print("Client got missile tick");
@@ -373,11 +414,9 @@ public abstract class LocalClient extends Client implements Runnable{
 					try {
 						Thread.sleep(2000);
 			            while (true) {
-
 		            		SendPacket(new Packet(this.getName(), ClientEvent.missileTick));
 			            	//System.out.print("sending tick " + missileTickPacket.GetClientEvent().GetEventCode());
 			                Thread.sleep(200);
-		    	    		
 			            }
 			        }
 			        catch (Exception e) {
@@ -387,6 +426,21 @@ public abstract class LocalClient extends Client implements Runnable{
 			};
 			thread.start();
 			thread.setName(this.getName());
+		}
+		
+		public void ClientExit()
+		{
+			try {
+				DictOfSockets.get(myPortNum).close();
+				
+				LocalClient._seqOutStream.close(); 
+				LocalClient._seqInStream.close();
+				LocalClient.seqSocket.close();
+			
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				//e.printStackTrace();
+			}
 		}
 }
 

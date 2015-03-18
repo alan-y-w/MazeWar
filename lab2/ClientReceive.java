@@ -3,6 +3,7 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Hashtable;
 import java.util.Queue;
 
 /**
@@ -11,7 +12,8 @@ import java.util.Queue;
 public class ClientReceive implements Runnable {
     private Thread _t;
     private ObjectInputStream _inStream;
-
+    public static Hashtable<ObjectInputStream, String> DictOfNameOutStreams = new Hashtable<ObjectInputStream ,String>();
+	private String PeerName = null;
     public ClientReceive(ObjectInputStream _inStream ) {
         this._inStream = _inStream;
 //        System.out.println("Created new Thread to listen to Server");
@@ -21,16 +23,26 @@ public class ClientReceive implements Runnable {
     	// stays in the loop to enqueue incoming packets
     	Packet packetFromPeer = null;
         try {
-			while (true) {
-				
-				packetFromPeer = (Packet) _inStream.readObject();
-				synchronized(this){
-					LocalClient._eventQ.offer(packetFromPeer);
+        	synchronized(this){
+				while ((packetFromPeer = (Packet) _inStream.readObject()) != null) {
+						LocalClient._eventQ.offer(packetFromPeer);
+						
+						if (PeerName == null)
+							PeerName = packetFromPeer.GetName();
+						//if (!ClientReceive.DictOfNameOutStreams.containsKey(_inStream))
+						//{
+							//ClientReceive.DictOfNameOutStreams.put(_inStream, packetFromPeer.GetName());
+						//}
 				}
 			}
 		} catch (ClassNotFoundException | IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
+			//System.out.println("ClientReceive Exception!");
+			//String clientName = ClientReceive.DictOfNameOutStreams(_inStream);
+			Client clientToRemove = Client.DictOfClients.get(PeerName);
+			clientToRemove.maze.removeClient(clientToRemove);
+			Client.DictOfClients.remove(PeerName);
 		}
     }
 

@@ -40,6 +40,7 @@ public class ClientEvent implements Serializable {
         private static final int FIRE = 4;
         private static final int INIT = 5;
         private static final int MISSILE_TICK = 6;
+        private static final int QUIT = 7;
         
         /**
          * Default to 0, to be invalid.
@@ -86,6 +87,9 @@ public class ClientEvent implements Serializable {
 
         //if client has received fire signal, then will actually shoot
         public static final ClientEvent missileTick = new ClientEvent(MISSILE_TICK);
+        
+        public static final ClientEvent quit = new ClientEvent(QUIT);
+        
         
         public int GetEventCode()
         {

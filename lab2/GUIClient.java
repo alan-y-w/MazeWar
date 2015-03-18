@@ -45,6 +45,9 @@ public class GUIClient extends LocalClient implements KeyListener {
         		// alanwu: send events to server, move after the server has broadcasted 
         		// the moves
                 if((e.getKeyChar() == 'q') || (e.getKeyChar() == 'Q')) {
+                		Packet packet = new Packet(this.getName(), ClientEvent.quit);
+                		packet.score = this.myPortNum;// use is as port number
+                		SendPacket(packet);
                         Mazewar.quit();
                 // Up-arrow moves forward.
                 } else if(e.getKeyCode() == KeyEvent.VK_UP) {

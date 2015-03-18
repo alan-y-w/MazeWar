@@ -31,7 +31,7 @@ public class SequencerReceive implements Runnable {
 			}
 		} catch (ClassNotFoundException | IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
     }
     

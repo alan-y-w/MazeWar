@@ -75,6 +75,7 @@ public abstract class LocalClient extends Client implements Runnable{
 	    public static int InitScore;
 	    public int myPortNum = 0;
 	    public static boolean GuiReadyFlag = false;
+	    private boolean serverModeFlag = false;
 		/** 
          * Create a {@link Client} local to this machine.
          * @param name The name of this {@link Client}.
@@ -200,10 +201,12 @@ public abstract class LocalClient extends Client implements Runnable{
 	                	
 	                		// loop to listen to incoming new client requests
 	                		// this thread will stay in this loop
+                			serverModeFlag = true;
 	                		System.out.println("Server waiting on port" + ports[i]);
 	                		ObjectOutputStream _out ;
 	                		ObjectInputStream _in ;
 	                		Socket serverSocket ;
+	                		
 	                		while (i < ports.length)
 	                		{
 	                			serverSocket = _serverSocket.accept();
@@ -353,7 +356,7 @@ public abstract class LocalClient extends Client implements Runnable{
 		    		{
 		    			LocalClient._eventQ.offer(myPacket);
 		    			// set the init sequence number once only
-			    		if ((myPacket.GetClientEvent().GetEventCode() == 5) && (LocalClient._curSeqNumber == -1))
+			    		if ((myPacket.GetClientEvent().GetEventCode() == 5) && (myPacket.seqNumber > LocalClient._curSeqNumber))
 			    		{
 			    			LocalClient._curSeqNumber = myPacket.seqNumber;
 			    		}
@@ -394,21 +397,8 @@ public abstract class LocalClient extends Client implements Runnable{
 					_peerOutputStreamList.remove(Client.DictOfClients.get(packet.GetName()));
 					_client.maze.removeClient(Client.DictOfClients.get(packet.GetName()));
 					Client.DictOfClients.remove(packet.GetName());
-//					int portNum = packet.score;
-//					try {
-//						//DictOfOutStreams.get(portNum).close();
-//						//DictOfInStreams.get(portNum).close();
-//						//DictOfSockets.get(portNum).close();
-//					} catch (IOException e) {
-//						// TODO Auto-generated catch block
-//						//e.printStackTrace();
-//					}
 				}
-				
-//				for(String _clientName: _clientNames) {
-//					Client.DictOfClients.get(_clientName).missileTick();
-//					System.out.print("Client got missile tick");
-//				}
+
 				break;
 			default:
 				break;

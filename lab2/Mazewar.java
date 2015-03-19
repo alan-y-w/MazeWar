@@ -119,7 +119,9 @@ public class Mazewar extends JFrame {
 
                 System.exit(0);
         }
-       
+        
+        public static String IP_1 = "128.100.13.171";
+        public static String IP_2 = "128.100.13.172";
         /** 
          * The place where all the pieces are put together. 
          */
@@ -154,7 +156,7 @@ public class Mazewar extends JFrame {
                 // Create the GUIClient and connect it to the KeyListener queue
                 guiClient = new GUIClient(name, maze);
                // String[] hostnames = {"128.100.13.61", "128.100.13.61", "128.100.13.60", "128.100.13.60"}; // remote
-                String[] hostnames = {"128.100.13.61", "128.100.13.61", "128.100.13.61", "128.100.13.61"}; // local
+                String[] hostnames = {IP_1, IP_1, IP_2,IP_2}; // local
                 int[] ports = {4555, 4556, 4557, 4558};
                 
                 guiClient.ConnectToPeer(hostnames, ports);

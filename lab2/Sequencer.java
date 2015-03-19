@@ -9,7 +9,6 @@ import java.util.Vector;
 public class Sequencer {
 	private static long _current_count;
 	private static int portNum = 4444;
-    private static String hostName = "128.100.13.61";
     private static ServerSocket _serverSocket;
 //    private static Vector<ObjectInputStream> _peerInputStreamList = new Vector<ObjectInputStream>();
 //	private static Vector<ObjectOutputStream> _peerOutputStreamList = new Vector<ObjectOutputStream>();

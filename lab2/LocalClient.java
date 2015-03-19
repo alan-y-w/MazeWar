@@ -69,7 +69,7 @@ public abstract class LocalClient extends Client implements Runnable{
 		private static ObjectOutputStream _seqOutStream;
 		private static Socket seqSocket;
 		private static int _seqPortNum = 4444;
-	    private static String _seqHostName = "128.100.13.61";
+	    private static String _seqHostName = Mazewar.IP_1;
 	    public static long _curSeqNumber = -1;
 	    public static DirectedPoint InitPoint;
 	    public static int InitScore;

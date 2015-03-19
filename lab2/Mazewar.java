@@ -153,7 +153,8 @@ public class Mazewar extends JFrame {
                 
                 // Create the GUIClient and connect it to the KeyListener queue
                 guiClient = new GUIClient(name, maze);
-                String[] hostnames = {"128.100.13.61", "128.100.13.61", "128.100.13.60", "128.100.13.60"};
+               // String[] hostnames = {"128.100.13.61", "128.100.13.61", "128.100.13.60", "128.100.13.60"}; // remote
+                String[] hostnames = {"128.100.13.61", "128.100.13.61", "128.100.13.61", "128.100.13.61"}; // local
                 int[] ports = {4555, 4556, 4557, 4558};
                 
                 guiClient.ConnectToPeer(hostnames, ports);

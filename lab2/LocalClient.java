@@ -131,7 +131,9 @@ public abstract class LocalClient extends Client implements Runnable{
 	        	
 	        	if (outRemove != null)
 	        	{
-	        		_peerOutputStreamList.remove(outRemove);
+	        		System.out.println("Remove from broadcast list broadcast");
+		        	_peerOutputStreamList.remove(outRemove);
+
 	        	}
         	}
         	
@@ -289,20 +291,13 @@ public abstract class LocalClient extends Client implements Runnable{
 						packet = _eventQ.poll();
 		        		if (packet != null) {
 		        			int eventCode = packet.GetClientEvent().GetEventCode();
-		        			if (eventCode != 5)
+
+	        				_curSeqNumber++;
+							// implement it to the right client
+		        			if (Client.DictOfClients.containsKey(packet.GetName()))
 		        			{
-		        				_curSeqNumber++;
-								// implement it to the right client
-			        			if (Client.DictOfClients.containsKey(packet.GetName()))
-			        			{
-			        				ImplementPacket(packet, eventCode);
-			        			}
+		        				ImplementPacket(packet, eventCode);
 		        			}
-							else
-							{
-								
-							}
-						
 		        		}
 	        		}
 	        		else
@@ -357,7 +352,7 @@ public abstract class LocalClient extends Client implements Runnable{
 		    		synchronized(this)
 		    		{
 		    			LocalClient._eventQ.offer(myPacket);
-		    			// take the largest init packet's sequence number as my initial sequence number
+		    			// set the init sequence number once only
 			    		if ((myPacket.GetClientEvent().GetEventCode() == 5) && (LocalClient._curSeqNumber == -1))
 			    		{
 			    			LocalClient._curSeqNumber = myPacket.seqNumber;

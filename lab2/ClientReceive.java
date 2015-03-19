@@ -40,12 +40,16 @@ public class ClientReceive implements Runnable {
 			//e.printStackTrace();
 			//System.out.println("ClientReceive Exception!");
 			//String clientName = ClientReceive.DictOfNameOutStreams(_inStream);
-			Client clientToRemove = Client.DictOfClients.get(PeerName);
-			clientToRemove.maze.removeClient(clientToRemove);
-			Client.DictOfClients.remove(PeerName);
+			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Receive Failure, removing client...");
+			synchronized (this)
+			{
+				Client clientToRemove = Client.DictOfClients.get(PeerName);
+				clientToRemove.maze.removeClient(clientToRemove);
+				Client.DictOfClients.remove(PeerName);
+			}
 		}
     }
 

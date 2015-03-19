@@ -35,7 +35,7 @@ public class ClientReceive implements Runnable {
 						//}
 				}
 			}
-		} catch (ClassNotFoundException | IOException e) {
+		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
 			//System.out.println("ClientReceive Exception!");
@@ -43,6 +43,9 @@ public class ClientReceive implements Runnable {
 			Client clientToRemove = Client.DictOfClients.get(PeerName);
 			clientToRemove.maze.removeClient(clientToRemove);
 			Client.DictOfClients.remove(PeerName);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
     }
 

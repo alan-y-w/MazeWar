@@ -153,53 +153,25 @@ public class Mazewar extends JFrame {
                 
                 // Create the GUIClient and connect it to the KeyListener queue
                 guiClient = new GUIClient(name, maze);
-                String[] hostnames = {"localhost", "localhost", "localhost", "localhost"};
+                String[] hostnames = {"128.100.13.61", "128.100.13.61", "128.100.13.60", "128.100.13.60"};
                 int[] ports = {4555, 4556, 4557, 4558};
-
-                // set guiclient's position, orientationo
                 
                 guiClient.ConnectToPeer(hostnames, ports);
-                // guiClient.ConnectToServer("localhost", 4555);
-                // ArrayList<String> remote_client_names = guiClient.BlockAndGetRemoteClientNames();
-                
-                //alanwu: set remote clients
-               // guiClient.StartReceive();
                 guiClient.start();
                 
-                // do this when all the other clients are done
-                // maze.addClient(guiClient);
-               
-                try {
-					Thread.sleep(2000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+                
+                while (!LocalClient.GuiReadyFlag)
+                {
+                	try {
+						Thread.sleep(1);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+                }
+                
                 this.addKeyListener(guiClient);
 
-//                for (String client_name : remote_client_names)
-//                {
-//                	if (!client_name.equals(name))
-//                	{
-//                		maze.addClient(new RemoteClient(client_name));
-//                	}
-//                	else	
-//                	{
-//                		maze.addClient(guiClient);
-//                	}
-//                }
-                
-                // Use braces to force constructors not to be called at the beginning of the
-                // constructor.
-                // alanwu: commented out for now
-//                {
-                        //maze.addClient(new RobotClient("Norby"));
-                        //maze.addClient(new RobotClient("Robbie"));
-                        //maze.addClient(new RobotClient("Clango"));
-                        //maze.addClient(new RobotClient("Marvin"));
-//                }
-
-                
                 // Create the panel that will display the maze.
                 overheadPanel = new OverheadMazePanel(maze, guiClient);
                 assert(overheadPanel != null);

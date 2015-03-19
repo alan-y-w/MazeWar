@@ -29,9 +29,12 @@ public class SequencerReceive implements Runnable {
 			    System.out.println("Assign Sequence Number: " +  packetFromPeer.seqNumber);
 			    _outStream.writeObject(packetFromPeer);
 			}
-		} catch (ClassNotFoundException | IOException e) {
+		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
     }
     

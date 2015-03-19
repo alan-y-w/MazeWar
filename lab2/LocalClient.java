@@ -18,6 +18,7 @@ import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 
 
 /*
@@ -62,17 +63,18 @@ public abstract class LocalClient extends Client implements Runnable{
 		public static Hashtable<Integer, ObjectOutputStream> DictOfOutStreams = new Hashtable<Integer, ObjectOutputStream>();
 		public static Hashtable<Integer, ObjectInputStream> DictOfInStreams = new Hashtable<Integer, ObjectInputStream>();
 		public static Hashtable<Integer, Socket> DictOfSockets = new Hashtable<Integer, Socket>();
-		protected static PriorityQueue<Packet> _eventQ = new PriorityQueue<Packet>(10, new PacketComparator());
+		protected static PriorityBlockingQueue<Packet> _eventQ = new PriorityBlockingQueue<Packet>(10, new PacketComparator());
 		private static Maze maze;
 		private static ObjectInputStream _seqInStream;
 		private static ObjectOutputStream _seqOutStream;
 		private static Socket seqSocket;
 		private static int _seqPortNum = 4444;
-	    private static String _seqHostName = "localhost";
+	    private static String _seqHostName = "128.100.13.61";
 	    public static long _curSeqNumber = -1;
 	    public static DirectedPoint InitPoint;
 	    public static int InitScore;
 	    public int myPortNum = 0;
+	    public static boolean GuiReadyFlag = false;
 		/** 
          * Create a {@link Client} local to this machine.
          * @param name The name of this {@link Client}.
@@ -159,74 +161,79 @@ public abstract class LocalClient extends Client implements Runnable{
         {
         	Thread thread = new Thread(){
         	    public void run(){
-        	    	int count = 0;
-                	for (int port : ports) {
+        	    	int i;
+                	for ( i = 0; i < ports.length; i++) {
                         try {
-                        	_serverSocket = new ServerSocket(port);
-                        	
-                        	// if I'm the first peer starting the game, I become the one 
-                        	// sends missile ticks
-                        	if (port == 4555)
-                        	{
-                        		MissleTickStart();
-                        	}
-                        	
-                        	while (true)
-                        	{
-                        		// loop to listen to incoming new client requests
-                        		// this thread will stay in this loop
-//                        		System.out.println("Server waiting...");
-                        		ObjectOutputStream _out ;
-                        		ObjectInputStream _in ;
-                        		Socket serverSocket ;
-                        		synchronized(this)
-                        		{
-                        			serverSocket = _serverSocket.accept();
-	//        	                	System.out.println("Server accepted!");
-	        	                	 _out = new ObjectOutputStream (serverSocket.getOutputStream());
-									 _in = new ObjectInputStream(serverSocket.getInputStream());
-	        	                	 _peerOutputStreamList.add(_out);
-                        		}
-                        		DictOfOutStreams.put(port, _out);
-                        		DictOfInStreams.put(port, _in);
-                        		DictOfSockets.put(port, serverSocket);
-                        		myPortNum = port;
-        	    				// start a new thread to handle new peer
-                        		InitHandShake(_out);
-        	    				new ClientReceive(_in).start();
-                        	}
+                        	Socket clientSocket;
+							
+							ObjectOutputStream _out ;
+                    		ObjectInputStream _in ;
+
+							clientSocket = new Socket(hostnames[i], ports[i]);
+							System.out.println("-->Connected as client! port: " +  ports[i]);
+							 _out = new ObjectOutputStream (clientSocket.getOutputStream());
+							 _in = new ObjectInputStream(clientSocket.getInputStream());
+							_peerOutputStreamList.add(_out);
+							
+							DictOfOutStreams.put(ports[i], _out);
+                    		DictOfInStreams.put(ports[i], _in);
+                    		DictOfSockets.put(ports[i], clientSocket);
+                    		
+                        	// start a new thread to handle new peer
+							InitHandShake(_out);
+                        	new ClientReceive(_in).start();
 
                         } catch (IOException ex) {
-                        	// the port is taken on this host, connect to it as client
-                        	Socket clientSocket;
-							try {
-								ObjectOutputStream _out ;
-                        		ObjectInputStream _in ;
-								synchronized(this)
-                        		{
-									clientSocket = new Socket(hostnames[count], ports[count]);
-									 _out = new ObjectOutputStream (clientSocket.getOutputStream());
-									 _in = new ObjectInputStream(clientSocket.getInputStream());
-									_peerOutputStreamList.add(_out);
-		                        	
-		                        	System.out.println("Connected as client! port: " +  ports[count]);
-                        		}
-								
-								DictOfOutStreams.put(port, _out);
-                        		DictOfInStreams.put(port, _in);
-                        		DictOfSockets.put(port, clientSocket);
-                        		
-	                        	// start a new thread to handle new peer
-								InitHandShake(_out);
-	                        	new ClientReceive(_in).start();
-							} catch (IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							count++;
-                        	//continue; // try next port
+                        	
+							break;
+							
                         }
+                        ObjectOutputStream _out ;
                     }
+                	
+                	if (i < ports.length)
+            		{
+                		try {
+                			_serverSocket = new ServerSocket(ports[i]);
+	                	
+	                		// loop to listen to incoming new client requests
+	                		// this thread will stay in this loop
+	                		System.out.println("Server waiting on port" + ports[i]);
+	                		ObjectOutputStream _out ;
+	                		ObjectInputStream _in ;
+	                		Socket serverSocket ;
+	                		while (i < ports.length)
+	                		{
+	                			serverSocket = _serverSocket.accept();
+	    	                	System.out.println("Server accepted! port: " + ports[i]);
+	    	                	 _out = new ObjectOutputStream (serverSocket.getOutputStream());
+								 _in = new ObjectInputStream(serverSocket.getInputStream());
+	    	                	 _peerOutputStreamList.add(_out);
+		                		DictOfOutStreams.put(ports[i], _out);
+		                		DictOfInStreams.put(ports[i], _in);
+		                		DictOfSockets.put(ports[i], serverSocket);
+		                		myPortNum = ports[i];
+			    				// start a new thread to handle new peer
+		                		InitHandShake(_out);
+			    				new ClientReceive(_in).start();
+			    				
+			    				// if I'm the first peer starting the game, I become the one 
+		                    	// sends missile ticks
+		                    	if (ports[i] == 4555)
+		                    	{
+		                    		MissleTickStart();
+		                    	}
+		                    	
+			    				i ++;
+	                		}
+	                		
+                    	
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							//e.printStackTrace();
+						}
+                		
+                	}
         	    }
         	};
         	thread.setName(this.getName());
@@ -244,9 +251,38 @@ public abstract class LocalClient extends Client implements Runnable{
 	        		{
     					continue;
 	        		}
+    				
+    				else if ( (_eventQ.peek() != null) && (_eventQ.peek().GetClientEvent().GetEventCode() == 5))
+    				{
+    					packet = _eventQ.poll();
+    					// init packet doesn't need to be ordered
+						// therefore do not increment the _curSeqNumber
+						String name = packet.GetName();
+						
+						// if not already added as a client
+						if (!name.equals(this.getName()))
+						{
+							System.out.println("creating remote client: " + name);
+							LocalClient.maze.addClientToPoint(new RemoteClient(name), packet.point, packet.score);
+						}
+						else 
+						{
+							// create the gui client
+							if (!LocalClient.maze.isClientAdded(this))
+							{
+								System.out.println("creating GUI client: " + this.getName());
+								LocalClient.maze.addClientToPoint((GUIClient)this, LocalClient.InitPoint, 0);
+								LocalClient.GuiReadyFlag = true;
+							}
+						}
+						
+						// reset the RandGen to be consistent
+						LocalClient.maze.ResetRandGen();
+    				}
     				// "==" condition check ensures _curSeqNumber goes up without gaps
     				else if ( (_eventQ.peek() != null) && (_eventQ.peek().seqNumber == _curSeqNumber))
 	        		{
+    					
 //    					System.out.println("Curent Seq Num: "+_curSeqNumber);
 //	        			System.out.println("Packet Seq Num: " +_eventQ.peek().seqNumber);
 	        			
@@ -264,28 +300,7 @@ public abstract class LocalClient extends Client implements Runnable{
 		        			}
 							else
 							{
-								// init packet doesn't need to be ordered
-								// therefore do not increment the _curSeqNumber
-								String name = packet.GetName();
 								
-								// if not already added as a client
-								if (!name.equals(this.getName()))
-								{
-									System.out.println("creating remote client: " + name);
-									LocalClient.maze.addClientToPoint(new RemoteClient(name), packet.point, packet.score);
-								}
-								else 
-								{
-									// create the gui client
-									if (!LocalClient.maze.isClientAdded(this))
-									{
-										System.out.println("creating GUI client: " + this.getName());
-										LocalClient.maze.addClientToPoint((GUIClient)this, LocalClient.InitPoint, 0);
-									}
-								}
-								
-								// reset the RandGen to be consistent
-								LocalClient.maze.ResetRandGen();
 							}
 						
 		        		}
@@ -322,7 +337,6 @@ public abstract class LocalClient extends Client implements Runnable{
 			// run this only when initializing
 //			System.out.println("Send init packet to Server: "+ this.getName());
 			try {
-				
 		    		Packet myPacket = LocalClient.GetSequenceNumber(new Packet(this.getName(), ClientEvent.init));
 //		    		System.out.println("Obtain seq number: "+ myPacket.seqNumber);
 		    		// generate the init location
@@ -343,7 +357,8 @@ public abstract class LocalClient extends Client implements Runnable{
 		    		synchronized(this)
 		    		{
 		    			LocalClient._eventQ.offer(myPacket);
-			    		if (myPacket.seqNumber > LocalClient._curSeqNumber )
+		    			// take the largest init packet's sequence number as my initial sequence number
+			    		if ((myPacket.GetClientEvent().GetEventCode() == 5) && (LocalClient._curSeqNumber == -1))
 			    		{
 			    			LocalClient._curSeqNumber = myPacket.seqNumber;
 			    		}

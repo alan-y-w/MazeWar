@@ -363,3 +363,9 @@ MazewarServer.class : MazewarServerReceive.class
 MazewarServerBroadcast.class : MazewarServerBroadcast.java
 MazewarServerBroadcast.class : MazewarServer.java
 MazewarServerBroadcast.class : MazewarServer.class
+
+Sequencer.class : Sequencer.java
+Sequencer.class : SequencerReceive.java
+Sequencer.class : SequencerReceive.class
+SequencerReceive.class : Packet.java
+SequencerReceive.class : Packet.class

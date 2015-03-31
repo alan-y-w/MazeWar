@@ -1,3 +1,6 @@
+conf/INITCFG.sh
+clientPort=8336
+
 bin/zkServer.sh start
 
-bin/zkCli.sh -server localhost:8533
+bin/zkCli.sh -server localhost:8336

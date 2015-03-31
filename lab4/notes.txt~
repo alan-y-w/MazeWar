@@ -1,0 +1,5 @@
+conf/INITCFG.sh
+
+bin/zkServer.sh start
+
+bin/zkCli.sh -server localhost:8675

@@ -1,5 +1,6 @@
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
+import java.util.Map;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -11,34 +12,31 @@ import org.apache.zookeeper.data.Stat;
 
 public class JobTracker {
 	
-	String myPath = "/jobTracker";
+	String myPath = "/tracker";
+	static String myIP;
     ZkConnector zkc;
     Watcher watcher;
-    
-    public static void main(String[] args) throws UnknownHostException, KeeperException, InterruptedException {
-    	
-    	
+
+    public static void main(String[] args) throws KeeperException, InterruptedException, UnknownHostException {
+      
         if (args.length != 1) {
             System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. Test zkServer:clientPort");
             return;
         }
-        
-        
 
-        JobTracker jobtracker = new JobTracker(args[0]);   
+        JobTracker t = new JobTracker(args[0]);   
+        JobTracker.myIP = Inet4Address.getLocalHost().getHostAddress();
         
-        // attempt to be the primary
-        jobtracker.checkpath();
-        
+        t.checkpath(myIP.getBytes());
         // do stuff
+        
+        System.out.println("Sleeping...");
         while (true) {
             try{ Thread.sleep(5000); } catch (Exception e) {}
         }
-        
     }
-    
-    
-    public JobTracker(String hosts) throws UnknownHostException, KeeperException, InterruptedException {
+
+    public JobTracker(String hosts) {
         zkc = new ZkConnector();
         try {
             zkc.connect(hosts);
@@ -52,42 +50,50 @@ public class JobTracker {
                                 handleEvent(event);
                         
                             } };
-                            
-        // set my IP
-        String myIP = Inet4Address.getLocalHost().getHostAddress();
-        //zkc.update(myPath, myIP.getBytes());
     }
     
-    private void handleEvent(WatchedEvent event) {
-        String path = event.getPath();
-        EventType type = event.getType();
-        if(path.equalsIgnoreCase(myPath)) {
-            if (type == EventType.NodeDeleted) {
-                System.out.println(myPath + " deleted! Let's go!");       
-                checkpath(); // try to become the Primary
-            }
-            if (type == EventType.NodeCreated) {
-                System.out.println(myPath + " created!");       
-                try{ Thread.sleep(5000); } catch (Exception e) {}
-                checkpath(); // re-enable the watch
-            }
-        }
-    }
-    
-    // create the znode
-    private void checkpath() {
+    private void checkpath(byte[] data) {
         Stat stat = zkc.exists(myPath, watcher);
         if (stat == null) {              // znode doesn't exist; let's try creating it
             System.out.println("Creating " + myPath);
             Code ret = zkc.create(
                         myPath,         // Path of znode
-                        null,           // Data not needed.
-                        CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
+                        data,           // Data needed.
+                        CreateMode.EPHEMERAL  // Znode type, set to EPHEMERAL.
                         );
             if (ret == Code.OK) System.out.println("the boss!");
         } 
     }
-    
-    
 
+    private void handleEvent(WatchedEvent event) {
+    	
+        String path = event.getPath();
+        EventType type = event.getType();
+        if(path.equalsIgnoreCase(myPath)) {
+            if (type == EventType.NodeDeleted) {
+                System.out.println(myPath + " deleted! Let's go!");
+                checkpath(myIP.getBytes()); // try to become the boss
+            }
+            if ((type == EventType.NodeCreated) || type == EventType.NodeDataChanged) {
+                System.out.println(myPath + " created/changed!");     
+                
+                // udpate local copy of the state data
+                try {
+					byte[] data =  zkc.read(myPath);
+					myIP = data.toString();
+					
+				} catch (KeeperException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+                
+                //try{ Thread.sleep(5000); } catch (Exception e) {}
+                checkpath(myIP.getBytes()); // re-enable the watch
+            }
+            
+        }
+    }
 }

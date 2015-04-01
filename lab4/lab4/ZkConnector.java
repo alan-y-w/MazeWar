@@ -39,7 +39,13 @@ public class ZkConnector implements Watcher {
     
     public void update(String path, byte[] data) throws KeeperException, InterruptedException
     {
-    	zooKeeper.setData(path, data, zooKeeper.exists(path, true).getVersion() + 1);
+    	zooKeeper.setData(path, data, zooKeeper.exists(path, true).getVersion());
+    	
+    }
+    
+    public byte[] read(String path) throws KeeperException, InterruptedException
+    {
+    	return zooKeeper.getData(path, true, zooKeeper.exists(path, true));
     }
 
     /**
@@ -71,12 +77,12 @@ public class ZkConnector implements Watcher {
         return stat;
     }
 
-    protected KeeperException.Code create(String path, String data, CreateMode mode) {
+    protected KeeperException.Code create(String path, byte[] data, CreateMode mode) {
         
         try {
             byte[] byteData = null;
             if(data != null) {
-                byteData = data.getBytes();
+                byteData = data;
             }
             zooKeeper.create(path, byteData, acl, mode);
             

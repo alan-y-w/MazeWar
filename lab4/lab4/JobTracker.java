@@ -1,6 +1,13 @@
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Inet4Address;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -10,29 +17,35 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.data.Stat;
 
-public class JobTracker {
+public class JobTracker implements Runnable {
 	
 	String myPath = "/tracker";
-	static String myIP;
     ZkConnector zkc;
     Watcher watcher;
-
-    public static void main(String[] args) throws KeeperException, InterruptedException, UnknownHostException {
+    static BlockingQueue<String> queue = new ArrayBlockingQueue<String>(16);
+    
+    public static int portNum = 4555;
+	static String myIP;
+    
+	private Thread t;
+	
+    public static void main(String[] args) throws KeeperException, InterruptedException, IOException {
       
         if (args.length != 1) {
             System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. Test zkServer:clientPort");
             return;
         }
 
-        JobTracker t = new JobTracker(args[0]);   
+        JobTracker jobtracker = new JobTracker(args[0]);   
         JobTracker.myIP = Inet4Address.getLocalHost().getHostAddress();
-        
-        t.checkpath(myIP.getBytes());
+
+        jobtracker.checkpath(myIP.getBytes());
         // do stuff
         
-        System.out.println("Sleeping...");
+        System.out.println("Waiting for EnQ");
         while (true) {
-            try{ Thread.sleep(5000); } catch (Exception e) {}
+        	String data = queue.take();
+        	System.out.println("DeQ: " + data);
         }
     }
 
@@ -61,8 +74,11 @@ public class JobTracker {
                         data,           // Data needed.
                         CreateMode.EPHEMERAL  // Znode type, set to EPHEMERAL.
                         );
-            if (ret == Code.OK) System.out.println("the boss!");
-        } 
+            if (ret == Code.OK) System.out.println("***the boss!***");
+            
+            // now this is the primary, run as server
+            this.start();
+        }
     }
 
     private void handleEvent(WatchedEvent event) {
@@ -74,13 +90,13 @@ public class JobTracker {
                 System.out.println(myPath + " deleted! Let's go!");
                 checkpath(myIP.getBytes()); // try to become the boss
             }
-            if ((type == EventType.NodeCreated) || type == EventType.NodeDataChanged) {
+            if ((type == EventType.NodeCreated) ) {
                 System.out.println(myPath + " created/changed!");     
                 
-                // udpate local copy of the state data
+                // alanwu: update local copy of the state data
                 try {
 					byte[] data =  zkc.read(myPath);
-					myIP = data.toString();
+					myIP = new String(data);
 					
 				} catch (KeeperException e) {
 					// TODO Auto-generated catch block
@@ -94,6 +110,42 @@ public class JobTracker {
                 checkpath(myIP.getBytes()); // re-enable the watch
             }
             
+            if (type == EventType.NodeDataChanged)
+            {
+            	// re-enable the watch
+            	zkc.exists(myPath, watcher);
+            }
+            
         }
     }
+
+	@Override
+	// handles client connections
+	public void run() {
+		ServerSocket serverSocket;
+		try {
+			serverSocket = new ServerSocket(portNum);
+			System.out.println("Server at " + portNum);
+			while (true) {
+	        	Socket new_socket = serverSocket.accept();
+	        	System.out.println("Connection with client made!");
+	        	ObjectInputStream in_stream = new ObjectInputStream(new_socket.getInputStream());
+	        	ObjectOutputStream out_stream = new ObjectOutputStream(new_socket.getOutputStream());
+
+	        	new JobTrackerClientHandle(in_stream, out_stream, JobTracker.queue).start();
+	        }
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void start ()
+	{
+		if (t == null)
+		{
+			t = new Thread (this);
+			t.start ();
+		}
+	}
 }

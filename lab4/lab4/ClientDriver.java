@@ -1,6 +1,9 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
 import java.net.UnknownHostException;
 
 import org.apache.zookeeper.CreateMode;
@@ -11,10 +14,17 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.data.Stat;
 
-public class ClientDriver {
+public class ClientDriver implements Runnable  {
 	ZkConnector zkc;
     Watcher watcher;
     static String myPath = "/tracker";
+    static String trackerIP = null;
+    
+    Socket _clientSocket = null; 
+    ObjectOutputStream _outputStream = null; 
+    ObjectInputStream _inputStream = null;
+    
+    private Thread t;
     
     public static void main(String[] args) throws IOException, KeeperException, InterruptedException
     {
@@ -26,19 +36,25 @@ public class ClientDriver {
     	
     	// handle user requests
     	ClientDriver client = new ClientDriver(args[0]);
-    	client.checkpath();
-    	while (true)
+    	client.checkUpdate();
+    	client.start();
+    }
+    
+    private void processInput(String userInput)
+    {
+    	if (userInput.equalsIgnoreCase("status"))
     	{
-    		try{ Thread.sleep(300); } catch (Exception e) {}
-//    		System.out.print(">> ");
-//    		
-//		    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-//		 
-//		    String userInput = null;
-//		    
-//		    userInput = br.readLine();
-//		    
-//		    System.out.println(userInput);
+    		// check status
+    	}
+    	else
+    	{
+    		// comm with job tracker
+    		try {
+				this._outputStream.writeObject(userInput);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
     	}
     }
     
@@ -58,17 +74,51 @@ public class ClientDriver {
                             } };                    
     }
     
-    private void checkpath() {
+    private void checkUpdate() {
         Stat stat = zkc.exists(myPath, watcher);
-//        if (stat == null) {              // znode doesn't exist; let's try creating it
-//            System.out.println("Creating " + myPath);
-//            Code ret = zkc.create(
-//                        myPath,         // Path of znode
-//                        null,           // Data not needed.
-//                        CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
-//                        );
-//            if (ret == Code.OK) System.out.println("the boss!");
-//        } 
+        if (stat != null) {              // znode does exist; read data
+        	
+        	byte[] data = null;
+			try {
+				data = zkc.read(myPath);
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	String tempIP = new String(data);
+        	
+        	// IP changes, reconnect
+    		trackerIP = tempIP;
+    		System.out.println("Connecting to tracker IP: "+ trackerIP);
+    		
+    		// connect to the server
+    		this.connectToServer(trackerIP, JobTracker.portNum);
+        } 
+    }
+    
+    private void connectToServer(String hostName, int portNumber)
+    {
+    	try {
+    		if (_clientSocket!= null)
+    		{
+    			_clientSocket.close();
+    		}
+		 	this._clientSocket = new Socket(hostName, portNumber);
+		 	this._outputStream = new ObjectOutputStream(this._clientSocket.getOutputStream());
+		 	this._inputStream = new ObjectInputStream(this._clientSocket.getInputStream());
+
+        } catch (UnknownHostException e) {
+            System.err.println("Don't know about host " + hostName);
+            System.exit(1);
+        } catch (IOException e) {
+            System.err.println("Couldn't get I/O for the connection to " +
+                hostName);
+            System.exit(1);
+        } 
+    	 
     }
 
     private void handleEvent(WatchedEvent event) {
@@ -77,13 +127,50 @@ public class ClientDriver {
         if(path.equalsIgnoreCase(myPath)) {
             if (type == EventType.NodeDeleted) {
                 System.out.println(myPath + " deleted! Let's go!");       
-                checkpath(); // try to become the boss
+                checkUpdate(); // try to connect
             }
-            if (type == EventType.NodeCreated) {
+            if ((type == EventType.NodeCreated)) {
                 System.out.println(myPath + " created!");       
-                try{ Thread.sleep(5000); } catch (Exception e) {}
-                checkpath(); // re-enable the watch
+                //try{ Thread.sleep(5000); } catch (Exception e) {}
+                checkUpdate(); // re-enable the watch
+            }
+            if ((type == EventType.NodeDataChanged))
+            {
+            	// update data no need to reconnect
             }
         }
     }
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		while (true)
+    	{
+    		System.out.print(">> ");
+    		
+		    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		 
+		    String userInput = null;
+		    
+		    try {
+				userInput = br.readLine();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		    
+		    System.out.println(userInput);
+		    
+		    this.processInput(userInput);
+    	}
+	}
+	
+	public void start ()
+	{
+		if (t == null)
+		{
+			t = new Thread (this);
+			t.start ();
+		}
+	}
 }

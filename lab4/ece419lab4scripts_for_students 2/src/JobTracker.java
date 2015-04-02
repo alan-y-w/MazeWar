@@ -23,6 +23,7 @@ public class JobTracker implements Runnable {
 	String workerPath = "/worker";
     ZkConnector zkc;
     Watcher watcherElection; // for election
+    Watcher watcherWorkerRoot; // for detecting new worker
     Watcher watcherWorker; // for dead worker handle, result collection
     Watcher watcherAssign; // for keeping track of assignment
     
@@ -58,8 +59,8 @@ public class JobTracker implements Runnable {
         	
         	// split the job into tasks
         	
-        	// create assign nodes using worker list
-        	
+        	// assign task to the assign list
+        	jobtracker.assignTask(data);
         	
         }
     }
@@ -79,12 +80,39 @@ public class JobTracker implements Runnable {
                         
                             } };
                             
-        watcherWorker = new Watcher() { // Anonymous Watcher
+        watcherWorkerRoot = new Watcher() { // Anonymous Watcher
                                 @Override
                                 public void process(WatchedEvent event) {
-                                	handleEventWorker(event);
+                                	handleEventWorkerRoot(event);
                             
                                 	      } };
+                                	      
+        watcherWorker = new Watcher() { // Anonymous Watcher
+				          @Override
+				          public void process(WatchedEvent event) {
+				          	handleEventWorker(event);
+				      
+				          	      } };
+                                	      
+//        watcherAssign	= new Watcher() { // Anonymous Watcher
+//					            @Override
+//					            public void process(WatchedEvent event) {
+//					            	handleEventAssign(event);
+//					        
+//					            	      } };
+    }
+    
+    private void assignTask(String task) throws KeeperException, InterruptedException
+    {
+    	List<String> list = zkc.getChildren(assignPath, watcherWorkerRoot);
+    	
+    	if (list.size() != 0)
+    	{
+    		// set the first node 
+    		// TODO: do this properly
+    		zkc.update(assignPath + "/" + list.get(0), task.getBytes());
+    	}
+    	
     }
     
     private void checkpath(byte[] data) {
@@ -105,8 +133,14 @@ public class JobTracker implements Runnable {
     
     private void checkWorker()
     {
-    	workerList = zkc.getChildren(workerPath, watcherWorker);
+    	workerList = zkc.getChildren(workerPath, watcherWorkerRoot);
     	System.out.println("workers: " + workerList);
+    	
+    	// set individual watch
+    	for (String s: workerList)
+        {
+        	zkc.exists(workerPath + "/" + s, watcherWorker);
+        }
     }
 
     // Election
@@ -149,13 +183,17 @@ public class JobTracker implements Runnable {
     }
     
     // Dead worker job re-assign
-    private void handleEventWorker(WatchedEvent event) {
+    private void handleEventWorkerRoot(WatchedEvent event) {
     	
         String path = event.getPath();
         EventType type = event.getType();
-        if(path.equalsIgnoreCase(myPath)) {
-            if (type == EventType.NodeDeleted) {
-                System.out.println(myPath + " worker dead!!");
+        if(path.equalsIgnoreCase(workerPath)) {
+            if (type == EventType.NodeChildrenChanged) {
+                System.out.println(workerPath + "Children changed!");
+
+                // get worker list, re-enable watch on root
+                // add watch to individual children
+                checkWorker();
             }
             
 //            if (type == EventType.NodeDataChanged)
@@ -167,6 +205,29 @@ public class JobTracker implements Runnable {
             
         }
     }
+    
+    private void handleEventWorker(WatchedEvent event) {
+    	
+        String path = event.getPath();
+        EventType type = event.getType();
+        if (type == EventType.NodeDataChanged) {
+            System.out.println(workerPath + "processing finished! now collecting data!");
+
+            // re-enable the watch
+            zkc.exists(path, watcherWorker);
+        }
+            
+        if (type == EventType.NodeDeleted)
+        {
+        	// re-enable the watch
+        	System.out.println("Dead Worker!!" + path);
+        	//zkc.exists(myPath, watcherElection);
+        }
+            
+        
+    }
+    
+    
 
 	@Override
 	// handles client connections

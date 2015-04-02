@@ -14,6 +14,7 @@ public class Worker {
     
     String workerPath = "/worker";
     String assignPath = "/assign";
+    int sequenceNum = 0;
     ZkConnector zkc;
     Watcher watcherAssign;
 
@@ -31,11 +32,16 @@ public class Worker {
             Thread.sleep(5000);
         } catch (Exception e) {}
         // create the worker root node if not already created
-        worker.createWorkerRoot();
+        worker.getSequenceNumber();
         
+        worker.createWorkerRoot();
+        worker.createAssignRoot(); 
+        worker.createAssignNode();
+        worker.createNode();
+        
+        // set watch
         worker.checkAssign();
         
-        worker.createNode();
         
         System.out.println("Sleeping...");
         while (true) {
@@ -59,18 +65,37 @@ public class Worker {
                             } };
     }
     
+    private void getSequenceNumber()
+    {
+    	while (zkc.exists(workerPath + "/worker-" + sequenceNum, true) != null)
+    	{
+    		sequenceNum ++;
+    	}
+    }
+    
     private void checkAssign() {
         // check children
+    	Stat stat = zkc.exists(assignPath + "/worker-" + sequenceNum, watcherAssign);
     }
     
     private void createNode()
     {
         Code ret = zkc.create(
-        			workerPath + "/worker-",         // Path of znode
+        			workerPath + "/worker-" + sequenceNum,         // Path of znode
                     null,           // Data not needed.
-                    CreateMode.EPHEMERAL_SEQUENTIAL   // Znode type, set to EPHEMERAL.
+                    CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
                     );
-        if (ret == Code.OK) System.out.println("created worker!");
+        if (ret == Code.OK) System.out.println("created worker!" + assignPath + "/worker-" + sequenceNum);
+    }
+    
+    private void createAssignNode()
+    {
+        Code ret = zkc.create(
+        			assignPath + "/worker-" + sequenceNum,         // Path of znode
+                    null,           // Data not needed.
+                    CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
+                    );
+        if (ret == Code.OK) System.out.println("created assign!"  + assignPath + "/worker-" + sequenceNum);
     }
 
     private void createWorkerRoot() {
@@ -85,14 +110,60 @@ public class Worker {
         } 
     }
     
+    private void createAssignRoot() {
+        Stat stat = zkc.exists(assignPath, true);
+        if (stat == null) {              // znode doesn't exist; let's try creating it
+            Code ret = zkc.create(
+            			assignPath,         // Path of znode
+                        null,           // Data not needed.
+                        CreateMode.PERSISTENT   // Znode type, set to PERSISTENT.
+                        );
+            if (ret == Code.OK) System.out.println("the assign root created!!");
+        } 
+    }
+    
+    private String ProcessHash(String passwordhash) {
+		// TODO Auto-generated method stub
+		return passwordhash.toUpperCase() + "cracked";
+	}
+    
     private void handleEventAssign(WatchedEvent event) {
         String path = event.getPath();
         EventType type = event.getType();
-        if(path.equalsIgnoreCase(assignPath)) {
-            if (type == EventType.NodeDeleted) {
-            	// check if job is assigned to me
+        String mypath = "/worker-" + sequenceNum;
+        if(path.equalsIgnoreCase(assignPath + mypath)) {
+            if (type == EventType.NodeDataChanged) {
             	// run the job
                 // re-enable the watch
+            	checkAssign();
+            	
+            	byte[] data = null;
+    			try {
+    				data = zkc.read(assignPath +mypath);
+    			} catch (KeeperException e) {
+    				// TODO Auto-generated catch block
+    				e.printStackTrace();
+    			} catch (InterruptedException e) {
+    				// TODO Auto-generated catch block
+    				e.printStackTrace();
+    			}
+    			// read task content
+            	String passwordhash = new String(data);
+            	System.out.println("hash received! " + passwordhash);
+            	
+            	// processing here
+            	String result = ProcessHash(passwordhash);
+            	
+            	// now put the result back in my own worker node
+            	try {
+					zkc.update(workerPath +mypath, result.getBytes());
+				} catch (KeeperException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
             }
         }
     }

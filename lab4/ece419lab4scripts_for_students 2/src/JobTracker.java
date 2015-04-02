@@ -47,6 +47,7 @@ public class JobTracker implements Runnable {
 
         // leader election
         jobtracker.checkpath(myIP.getBytes());
+        
         // watch the worker list
         jobtracker.checkWorker();
         

@@ -77,6 +77,17 @@ public class ZkConnector implements Watcher {
         return stat;
     }
     
+    protected Stat exists(String path, boolean watch) {
+        
+        Stat stat =null;
+        try {
+            stat = zooKeeper.exists(path, watch);
+        } catch(Exception e) {
+        }
+        
+        return stat;
+    }
+    
     protected List<String> getChildren(String path, Watcher watch) {
         
     	List<String> stat =null;

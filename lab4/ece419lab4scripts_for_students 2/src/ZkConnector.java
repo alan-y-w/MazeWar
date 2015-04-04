@@ -47,6 +47,11 @@ public class ZkConnector implements Watcher {
     {
     	return zooKeeper.getData(path, true, zooKeeper.exists(path, true));
     }
+    
+    public void delete(String path) throws InterruptedException, KeeperException
+    {
+    	zooKeeper.delete(path, zooKeeper.exists(path, true).getVersion());
+    }
 
     /**
      * Closes connection with ZooKeeper

@@ -32,14 +32,15 @@ public class Worker {
             Thread.sleep(5000);
         } catch (Exception e) {}
         // create the worker root node if not already created
-        worker.getSequenceNumber();
-        
         worker.createWorkerRoot();
         worker.createAssignRoot(); 
-        worker.createAssignNode();
-        worker.createNode();
         
-        // set watch
+        worker.getSequenceNumber();
+        worker.createNode();
+        worker.createAssignNode();
+        
+        
+        // set watch for assign
         worker.checkAssign();
         
         
@@ -80,23 +81,58 @@ public class Worker {
     
     private void createNode()
     {
-        Code ret = zkc.create(
-        			workerPath + "/worker-" + sequenceNum,         // Path of znode
-                    null,           // Data not needed.
-                    CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
-                    );
-        if (ret == Code.OK) System.out.println("created worker!" + assignPath + "/worker-" + sequenceNum);
-    }
+	    Code ret = zkc.create(
+	    			workerPath + "/worker-" + sequenceNum,         // Path of znode
+	                null,           // Data not needed.
+	                CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
+	                );
+	    
+	    if (ret == Code.OK) 
+    	{
+	    	System.out.println("created worker!" + assignPath + "/worker-" + sequenceNum);
+    	}
+	    else // there is a race, try getting another sequence number
+	    {
+	    	while (ret!=Code.OK)
+	    	{
+	    		getSequenceNumber();
+	    	}
+	    	
+	    	ret = zkc.create(
+	    			workerPath + "/worker-" + sequenceNum,         // Path of znode
+	                null,           // Data not needed.
+	                CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
+	                );
+	    }
+	}
     
     private void createAssignNode()
     {
-        Code ret = zkc.create(
-        			assignPath + "/worker-" + sequenceNum,         // Path of znode
-                    null,           // Data not needed.
-                    CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
-                    );
-        if (ret == Code.OK) System.out.println("created assign!"  + assignPath + "/worker-" + sequenceNum);
-    }
+    	Stat stat = zkc.exists(assignPath + "/worker-" + sequenceNum, true);
+    	if (stat == null)
+    	{
+		    Code ret = zkc.create(
+		    			assignPath + "/worker-" + sequenceNum,         // Path of znode
+		                null,           // Data not needed.
+		                CreateMode.PERSISTENT   // Znode type, set to PERSISTEN
+		                						// if the worker is dead, the job tracker will remove this
+		                );
+		    if (ret == Code.OK) System.out.println("created assign!"  + assignPath + "/worker-" + sequenceNum);
+    	}
+    	else
+    	{
+    		//clear garbage
+    		try {
+				zkc.update(assignPath + "/worker-" + sequenceNum, null);
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+	}
 
     private void createWorkerRoot() {
         Stat stat = zkc.exists(workerPath, true);

@@ -137,10 +137,13 @@ public class JobTracker implements Runnable {
     	System.out.println("workers: " + workerList);
     	
     	// set individual watch
-    	for (String s: workerList)
-        {
-        	zkc.exists(workerPath + "/" + s, watcherWorker);
-        }
+    	if (workerList!=null)
+    	{
+	    	for (String s: workerList)
+	        {
+	        	zkc.exists(workerPath + "/" + s, watcherWorker);
+	        }
+    	}
     }
 
     // Election
@@ -154,31 +157,9 @@ public class JobTracker implements Runnable {
                 checkpath(myIP.getBytes()); // try to become the boss
             }
             if ((type == EventType.NodeCreated) ) {
-                System.out.println(myPath + " created/changed!");     
-                
-                // alanwu: update local copy of the state data
-                try {
-					byte[] data =  zkc.read(myPath);
-					myIP = new String(data);
-					
-				} catch (KeeperException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-                
-                //try{ Thread.sleep(5000); } catch (Exception e) {}
+                System.out.println(myPath + " created!");            
                 checkpath(myIP.getBytes()); // re-enable the watch
             }
-            
-            if (type == EventType.NodeDataChanged)
-            {
-            	// re-enable the watch
-            	zkc.exists(myPath, watcherElection);
-            }
-            
         }
     }
     
@@ -189,30 +170,40 @@ public class JobTracker implements Runnable {
         EventType type = event.getType();
         if(path.equalsIgnoreCase(workerPath)) {
             if (type == EventType.NodeChildrenChanged) {
-                System.out.println(workerPath + "Children changed!");
+                System.out.println(workerPath + ": Children changed!");
 
                 // get worker list, re-enable watch on root
                 // add watch to individual children
                 checkWorker();
             }
-            
-//            if (type == EventType.NodeDataChanged)
-//            {
-//            	// re-enable the watch
-//            	System.out.println(myPath + " worker job done");
-//            	//zkc.exists(myPath, watcherElection);
-//            }
-            
         }
     }
     
     private void handleEventWorker(WatchedEvent event) {
     	
         String path = event.getPath();
+        String workerIndex = path.substring(7);
         EventType type = event.getType();
+        
         if (type == EventType.NodeDataChanged) {
-            System.out.println(workerPath + "processing finished! now collecting data!");
-
+            System.out.println(path + "processing finished! now collecting data!");
+            
+            
+            // remove assigned data
+           try {
+        	   	byte[] data = zkc.read(path);
+        	   	String result = new String (data);
+        	   	System.out.println("retrieve data: " + result);
+        	    System.out.println("clear assignment!");
+				zkc.update(assignPath + workerIndex, null);
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
             // re-enable the watch
             zkc.exists(path, watcherWorker);
         }
@@ -221,6 +212,46 @@ public class JobTracker implements Runnable {
         {
         	// re-enable the watch
         	System.out.println("Dead Worker!!" + path);
+        	
+        	// if there is task assigned to this worker, re-assign it to someone else
+        	// /worker/worker-0, workerIndex = /worker-0
+        	
+        	String assignedTask = null;
+        	System.out.println("Dead Worker index: " + workerIndex);
+        	
+        	try {
+        		byte[] data = zkc.read(assignPath + workerIndex);
+        		if (data != null)
+        		{
+        			assignedTask = new String(data);
+        		}
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	
+        	if (assignedTask!= null)
+        	{
+        		System.out.println("dead worker has task: " + assignedTask);
+        		
+        		// TODO: reassgin the task
+        	}
+        	
+        	// remove the old assign node of the dead worker
+        	System.out.println("Dead Worker assign remove!: " + assignPath + workerIndex);
+        	try {
+				zkc.delete(assignPath + workerIndex);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	// no need to up the watch again
         	//zkc.exists(myPath, watcherElection);
         }
             

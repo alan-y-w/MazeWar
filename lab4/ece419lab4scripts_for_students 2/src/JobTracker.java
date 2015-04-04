@@ -28,11 +28,14 @@ public class JobTracker implements Runnable {
     Watcher watcherAssign; // for keeping track of assignment
     
     List<String> workerList;
+    int numWorkers;
 //    Watcher watcherTask;	// split a job into tasks
     static BlockingQueue<String> queue = new ArrayBlockingQueue<String>(16);
     
     public static int portNum = 4555;
 	static String myIP;
+	
+	static int numWords = 265744; 
     
 	private Thread t;
 	
@@ -61,7 +64,6 @@ public class JobTracker implements Runnable {
         	
         	// assign task to the assign list
         	jobtracker.assignTask(data);
-        	
         }
     }
 
@@ -93,24 +95,66 @@ public class JobTracker implements Runnable {
 				          	handleEventWorker(event);
 				      
 				          	      } };
-                                	      
-//        watcherAssign	= new Watcher() { // Anonymous Watcher
-//					            @Override
-//					            public void process(WatchedEvent event) {
-//					            	handleEventAssign(event);
-//					        
-//					            	      } };
     }
     
-    private void assignTask(String task) throws KeeperException, InterruptedException
+    // this call should be blocking in case not enough work available
+    // user inputs will be queued
+    private void assignTask(String password) throws KeeperException, InterruptedException
     {
     	List<String> list = zkc.getChildren(assignPath, watcherWorkerRoot);
     	
     	if (list.size() != 0)
     	{
     		// set the first node 
-    		// TODO: do this properly
-    		zkc.update(assignPath + "/" + list.get(0), task.getBytes());
+    		//alanwu TODO: do this properly
+    		//zkc.update(assignPath + "/" + list.get(0), task.getBytes());
+    		
+    		// just an estimate, since not all workers can be free
+    		int partitionSize = numWords/numWorkers;
+    		int partitionID = 0;
+    		String task = null;
+    		// assign tasks to all workers
+    		// need partition size, id, and password hash to crack
+    		// worker need to be avaiable
+    		
+    		while (true)
+    		{
+				for (String s : list)
+				{
+					//zkc.update(assignPath + "/" + list.get(0), task.getBytes());
+					
+					// check and see if worker available
+					String fullAssignPath = assignPath + "/" + s;
+					byte[] data = zkc.read(fullAssignPath);
+					
+					if (data== null)
+					{
+						// available worker found, assign job
+						task = password + "-" + partitionID + "-" +partitionSize;
+						System.out.println(">>> assign task: " + task + "to " + fullAssignPath);
+						zkc.update(fullAssignPath, task.getBytes());
+						partitionID ++;
+					}
+					
+					// worker finish -> job tracker clear assign
+					// allow enough time for the worker to up the watch again
+					// avoid the case when the assign is cleared to null, while the user's watch is down
+					// another task is assigned - in this case the worker will miss the task being assigned.
+					// take a 1 second break for the worker to up the watch again.
+					Thread.sleep(1000);
+				}
+				
+				// if 2 works, id = 0, 1, split job in half
+				// both works got task, then partitionID = 1
+				// (partitionID + 1) == numWords
+				if ((partitionID + 1) * partitionSize >= numWords)
+				{
+					// done assigning tasks
+					System.out.println("(y)done assigning");
+					break;
+				}
+				//otherwise, keep going
+    		}
     	}
     	
     }
@@ -133,7 +177,9 @@ public class JobTracker implements Runnable {
     
     private void checkWorker()
     {
+    	// get current list of workers
     	workerList = zkc.getChildren(workerPath, watcherWorkerRoot);
+    	numWorkers = workerList.size();
     	System.out.println("workers: " + workerList);
     	
     	// set individual watch
@@ -172,7 +218,7 @@ public class JobTracker implements Runnable {
             if (type == EventType.NodeChildrenChanged) {
                 System.out.println(workerPath + ": Children changed!");
 
-                // get worker list, re-enable watch on root
+                // get new worker list, re-enable watch on root
                 // add watch to individual children
                 checkWorker();
             }
@@ -186,14 +232,14 @@ public class JobTracker implements Runnable {
         EventType type = event.getType();
         
         if (type == EventType.NodeDataChanged) {
-            System.out.println(path + "processing finished! now collecting data!");
+            System.out.println(path + ": processing finished! now collecting data!");
             
             
             // remove assigned data
            try {
         	   	byte[] data = zkc.read(path);
         	   	String result = new String (data);
-        	   	System.out.println("retrieve data: " + result);
+        	   	System.out.println("<<< retrieve data: " + result);
         	    System.out.println("clear assignment!");
 				zkc.update(assignPath + workerIndex, null);
 			} catch (KeeperException e) {
@@ -237,7 +283,7 @@ public class JobTracker implements Runnable {
         	{
         		System.out.println("dead worker has task: " + assignedTask);
         		
-        		// TODO: reassgin the task
+        		//alanwu TODO: re-assign the task
         	}
         	
         	// remove the old assign node of the dead worker

@@ -160,6 +160,14 @@ public class Worker {
     
     private String ProcessHash(String passwordhash) {
 		// TODO Auto-generated method stub
+    	try {
+    		
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	System.out.println("done!");
 		return passwordhash.toUpperCase() + "cracked";
 	}
     
@@ -169,10 +177,9 @@ public class Worker {
         String mypath = "/worker-" + sequenceNum;
         if(path.equalsIgnoreCase(assignPath + mypath)) {
             if (type == EventType.NodeDataChanged) {
-            	// run the job
-                // re-enable the watch
-            	checkAssign();
             	
+            	
+            	// run the job
             	byte[] data = null;
     			try {
     				data = zkc.read(assignPath +mypath);
@@ -184,22 +191,35 @@ public class Worker {
     				e.printStackTrace();
     			}
     			// read task content
-            	String passwordhash = new String(data);
-            	System.out.println("hash received! " + passwordhash);
-            	
-            	// processing here
-            	String result = ProcessHash(passwordhash);
-            	
-            	// now put the result back in my own worker node
-            	try {
-					zkc.update(workerPath +mypath, result.getBytes());
-				} catch (KeeperException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+    			// exclude the case when the job tracker clears task data
+    			if (data!= null)
+    			{
+	            	String passwordhash = new String(data);
+	            	System.out.println("hash received! " + passwordhash);
+	            	
+	            	// processing here
+	            	// alanwu TODO: use the proper function for this
+	            	String result = ProcessHash(passwordhash);
+
+	            	// now put the result back in my own worker node
+	            	try {
+						zkc.update(workerPath +mypath, result.getBytes());
+					} catch (KeeperException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+    			}
+    			else
+    			{
+    				System.out.println("cleared assignment");
+    			}
+    			
+    			// re-enable the watch once done my job
+    			System.out.println("UP THE WATCH");
+            	checkAssign();
             }
         }
     }

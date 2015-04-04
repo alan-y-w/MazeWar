@@ -9,6 +9,10 @@ public class MD5Test {
         String word = "r41nb0w";
         String hash = getHash(word);
         System.out.println(hash); 
+        
+//        word = "c463be62fd5252c7568d7bafd3cc4a55";
+//        hash = getHash(word);
+//        System.out.println(hash); 
     }
 
     public static String getHash(String word) {

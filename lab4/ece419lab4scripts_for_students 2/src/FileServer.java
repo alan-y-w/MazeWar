@@ -70,7 +70,17 @@ public class FileServer  implements Runnable{
     private void checkpath(byte[] data) {
         Stat stat = zkc.exists(myPath, watcher);
         if (stat == null) {              // znode doesn't exist; let's try creating it
-            System.out.println("Creating " + myPath);
+            
+        	// now this is the primary, run as server
+            try {
+				filereader = new FileReader(filename);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            this.start();
+        	
+        	System.out.println("Creating " + myPath);
             Code ret = zkc.create(
                         myPath,         // Path of znode
                         data,           // Data needed.
@@ -78,15 +88,7 @@ public class FileServer  implements Runnable{
                         );
             if (ret == Code.OK) System.out.println("***the boss!***");
             
-            // now this is the primary, run as server
-            try {
-				filereader = new FileReader(filename);
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
             
-            this.start();
         }
     }
 

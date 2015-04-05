@@ -5,7 +5,9 @@ build:
 	JobTracker.java \
 	JobTrackerClientHandle.java \
 	ClientDriver.java \
-	Worker.java
+	Worker.java \
+	FileServer.java \
+	FileServerClientHandle.java
 runTracker:
 	java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. JobTracker localhost:8336
 runTest:
@@ -14,6 +16,8 @@ runClient:
 	java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. ClientDriver localhost:8336
 runWorker:
 	java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. Worker localhost:8336
+runFileServer:
+	java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. FileServer localhost:8336
 
 clean:
 	rm -f *.class

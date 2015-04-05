@@ -61,7 +61,6 @@ public class JobTracker implements Runnable {
         	System.out.println("DeQ: " + data);
         	
         	// split the job into tasks
-        	
         	// assign task to the assign list
         	jobtracker.assignTask(data);
         }
@@ -110,7 +109,7 @@ public class JobTracker implements Runnable {
     		//zkc.update(assignPath + "/" + list.get(0), task.getBytes());
     		
     		// just an estimate, since not all workers can be free
-    		int partitionSize = numWords/numWorkers;
+    		int partitionSize = numWords/numWorkers + numWords%numWorkers;
     		int partitionID = 0;
     		String task = null;
     		// assign tasks to all workers

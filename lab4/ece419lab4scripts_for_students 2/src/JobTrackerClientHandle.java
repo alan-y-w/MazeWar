@@ -8,7 +8,7 @@ public class JobTrackerClientHandle implements Runnable{
 	ObjectInputStream in_stream;
 	ObjectOutputStream out_stream;
 	BlockingQueue<String> Q;
-	 Thread t;
+	Thread t;
 	
 	public JobTrackerClientHandle(ObjectInputStream inStream, ObjectOutputStream outStream, BlockingQueue queue)
 	{

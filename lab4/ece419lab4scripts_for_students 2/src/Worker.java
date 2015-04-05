@@ -9,15 +9,26 @@ import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class Worker {
     
     String workerPath = "/worker";
     String assignPath = "/assign";
+    String fileServerPath = "/fileServer";
     int sequenceNum = 0;
     ZkConnector zkc;
-    Watcher watcherAssign;
-
+    Watcher watcherAssign ,watcherFileServer;
+    
+    Socket _clientSocket = null; 
+    ObjectOutputStream _outputStream = null; 
+    ObjectInputStream _inputStream = null;
+    
+    static String FileServerIP = null;
+    
     public static void main(String[] args) {
       
         if (args.length != 1) {
@@ -39,10 +50,11 @@ public class Worker {
         worker.createNode();
         worker.createAssignNode();
         
+        // set watch for file server
+        worker.checkFileServer();
         
         // set watch for assign
         worker.checkAssign();
-        
         
         System.out.println("Sleeping...");
         while (true) {
@@ -64,6 +76,12 @@ public class Worker {
                                 handleEventAssign(event);
                         
                             } };
+        watcherFileServer = new Watcher() { // Anonymous Watcher
+            @Override
+            public void process(WatchedEvent event) {
+                handleEventFileServer(event);
+        
+            } };
     }
     
     private void getSequenceNumber()
@@ -74,9 +92,75 @@ public class Worker {
     	}
     }
     
+    private void connectToServer(String hostName, int portNumber)
+    {
+    	try {
+    		if (_clientSocket!= null)
+    		{
+    			_clientSocket.close();
+    		}
+		 	this._clientSocket = new Socket(hostName, portNumber);
+		 	this._outputStream = new ObjectOutputStream(this._clientSocket.getOutputStream());
+		 	this._inputStream = new ObjectInputStream(this._clientSocket.getInputStream());
+
+        } catch (UnknownHostException e) {
+            System.err.println("Don't know about host " + hostName);
+            System.exit(1);
+        } catch (IOException e) {
+            System.err.println("Couldn't get I/O for the connection to " +
+                hostName);
+            System.exit(1);
+        } 
+    }
+    
+    private void getDictionaryPartition(String request)
+    {
+    	try {
+			_outputStream.writeObject(request);
+			String s = (String) _inputStream.readObject();
+			System.out.println("Received from fs: " + s);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    }
+    
     private void checkAssign() {
         // check children
     	Stat stat = zkc.exists(assignPath + "/worker-" + sequenceNum, watcherAssign);
+    }
+    
+    private void checkFileServer() {
+        Stat stat = zkc.exists(fileServerPath, watcherFileServer);
+        if (stat != null) {              // znode does exist; read data
+        	
+        	byte[] data = null;
+			try {
+				data = zkc.read(fileServerPath);
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			if (data!= null)
+			{
+	        	String tempIP = new String(data);
+	        	
+	        	// IP changes, reconnect
+	        	FileServerIP = tempIP;
+	    		System.out.println("Connecting to file server IP: "+ FileServerIP);
+	    		
+	    		// connect to the server
+	    		this.connectToServer(FileServerIP, FileServer.portNum);
+			}
+        } 
     }
     
     private void createNode()
@@ -177,8 +261,6 @@ public class Worker {
         String mypath = "/worker-" + sequenceNum;
         if(path.equalsIgnoreCase(assignPath + mypath)) {
             if (type == EventType.NodeDataChanged) {
-            	
-            	
             	// run the job
             	byte[] data = null;
     			try {
@@ -199,6 +281,7 @@ public class Worker {
 	            	
 	            	// processing here
 	            	// alanwu TODO: use the proper function for this
+	            	getDictionaryPartition(passwordhash);
 	            	String result = ProcessHash(passwordhash);
 
 	            	// now put the result back in my own worker node
@@ -220,6 +303,22 @@ public class Worker {
     			// re-enable the watch once done my job
     			System.out.println("UP THE WATCH");
             	checkAssign();
+            }
+        }
+    }
+    
+    private void handleEventFileServer(WatchedEvent event) {
+        String path = event.getPath();
+        EventType type = event.getType();
+        if(path.equalsIgnoreCase(fileServerPath)) {
+            if (type == EventType.NodeDeleted) {
+                System.out.println(fileServerPath + " deleted! Try reconnecting!");       
+                checkFileServer(); // try to connect
+            }
+            if ((type == EventType.NodeCreated)) {
+                System.out.println(fileServerPath + " created! connecting!");       
+                //try{ Thread.sleep(5000); } catch (Exception e) {}
+                checkFileServer(); // re-enable the watch
             }
         }
     }

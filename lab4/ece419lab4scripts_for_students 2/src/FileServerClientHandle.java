@@ -3,19 +3,21 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class FileServerClientHandle implements Runnable{
 	ObjectInputStream in_stream;
 	ObjectOutputStream out_stream;
-	FileReader fr;
+	List<String> words;
 	Thread t;
 	
-	public FileServerClientHandle(ObjectInputStream inStream, ObjectOutputStream outStream, FileReader fileReader)
+	public FileServerClientHandle(ObjectInputStream inStream, ObjectOutputStream outStream, List<String> ListWords)
 	{
 		in_stream = inStream;
 		out_stream = outStream;
-		fr = fileReader;
+		words = ListWords;
 	}
 
 	@Override
@@ -25,21 +27,20 @@ public class FileServerClientHandle implements Runnable{
 			while (( data = (String) in_stream.readObject()) != null) {
 				System.out.println("From Client: " + data);
 				
-				// alanwu TODO: send partition
-				String filename = "dictionary/lowercase.rand";
-				fr = new FileReader(filename);
-				BufferedReader br = new BufferedReader(fr);
+				// data - ID - partition size
+				String[] task = data.split("-");
+				int id = Integer.parseInt(task[1]);
+				int size = Integer.parseInt(task[2]);
+				ArrayList<String> partition = null;
 				
-				String line;
-				int start = 0;
-				int end = 4;
-			    for (int i = start; i < end; i ++) {
-			    	// process the line.
-			    	line = br.readLine();
-			    	System.out.println(line);
-			    }
+				try {
+					partition = new ArrayList<String>( words.subList(id * size, (id + 1) * size));	
+				} catch(IndexOutOfBoundsException e){
+					partition = new ArrayList<String>( words.subList(id * size, words.size()));
+				}
 				
-				out_stream.writeObject("HERE IS THE PARTITION");
+				System.out.println("Sending partition to client!");
+				out_stream.writeObject(partition);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

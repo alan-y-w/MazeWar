@@ -35,7 +35,7 @@ public class JobTracker implements Runnable {
     public static int portNum = 4555;
 	static String myIP;
 	
-	static int numWords = 265744; 
+	static int numWords = FileServer.numWords; 
     
 	private Thread t;
 	

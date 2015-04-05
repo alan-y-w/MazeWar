@@ -8,6 +8,9 @@ import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -29,7 +32,12 @@ public class FileServer  implements Runnable{
 	
 	private Thread t;
 	String filename = "dictionary/lowercase.rand";
-	FileReader filereader;
+	public static int numWords = 265744;
+//	String filename = "dictionary/lowercase_test.rand";
+//	public static int numWords = 100;
+	
+	// concurrently read safe
+	List<String> listWords = new ArrayList<String>();
 	
     public static void main(String[] args) throws UnknownHostException {
         
@@ -72,12 +80,33 @@ public class FileServer  implements Runnable{
         if (stat == null) {              // znode doesn't exist; let's try creating it
             
         	// now this is the primary, run as server
-            try {
-				filereader = new FileReader(filename);
-			} catch (FileNotFoundException e) {
+            
+        	// read the file in memory, 2.8M is nothing..
+			FileReader fr = null;
+			System.out.println("Working Directory = " +
+		              System.getProperty("user.dir"));
+			try {
+				fr = new FileReader(filename);
+			} catch (FileNotFoundException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			BufferedReader br = new BufferedReader(fr);
+			
+			
+			String line;
+			//int counter = 0;
+		    try {
+				while ((line = br.readLine()) !=null) {
+					//if (counter %5000 == 0) System.out.println("Processed "+counter + "words");
+					listWords.add(line);
+					//counter ++ ;
+				}
+			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+        	
             this.start();
         	
         	System.out.println("Creating " + myPath);
@@ -87,7 +116,6 @@ public class FileServer  implements Runnable{
                         CreateMode.EPHEMERAL  // Znode type, set to EPHEMERAL.
                         );
             if (ret == Code.OK) System.out.println("***the boss!***");
-            
             
         }
     }
@@ -120,7 +148,7 @@ public class FileServer  implements Runnable{
 	        	ObjectInputStream in_stream = new ObjectInputStream(new_socket.getInputStream());
 	        	ObjectOutputStream out_stream = new ObjectOutputStream(new_socket.getOutputStream());
 	        	
-	        	new FileServerClientHandle(in_stream, out_stream, null).start();
+	        	new FileServerClientHandle(in_stream, out_stream, listWords).start();
 	        }
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

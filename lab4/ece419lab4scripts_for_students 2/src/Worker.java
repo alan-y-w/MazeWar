@@ -11,8 +11,13 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Worker {
     
@@ -113,12 +118,47 @@ public class Worker {
         } 
     }
     
-    private void getDictionaryPartition(String request)
+    private static String getHash(String word) {
+
+        String hash = null;
+        try {
+            MessageDigest md5 = MessageDigest.getInstance("MD5");
+            BigInteger hashint = new BigInteger(1, md5.digest(word.getBytes()));
+            hash = hashint.toString(16);
+            while (hash.length() < 32) hash = "0" + hash;
+        } catch (NoSuchAlgorithmException nsae) {
+            // ignore
+        }
+        return hash;
+    }
+    
+    private String ProcessHash(String data, List<String> words) {
+    	// data - ID - partition size
+		String[] task = data.split("-");
+		String passwordHash = task[0];
+		String result = "NOT_FOUND";
+		// check everything in the partition
+		for (String s : words)
+		{
+			if (getHash(s).equals(passwordHash))
+			{
+				// found a result
+				result = s;
+				break;
+			}
+		}
+    	System.out.println("done!");
+		return result;
+	}
+    
+    private List<String> getDictionaryPartition(String request)
     {
+    	List<String> partition = null;
     	try {
 			_outputStream.writeObject(request);
-			String s = (String) _inputStream.readObject();
-			System.out.println("Received from fs: " + s);
+		    partition =  (ArrayList<String>) _inputStream.readObject();
+		
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -126,6 +166,7 @@ public class Worker {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+    	return partition;
     	
     }
     
@@ -242,18 +283,7 @@ public class Worker {
         } 
     }
     
-    private String ProcessHash(String passwordhash) {
-		// TODO Auto-generated method stub
-    	try {
-    		
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    	System.out.println("done!");
-		return passwordhash.toUpperCase() + "cracked";
-	}
+    
     
     private void handleEventAssign(WatchedEvent event) {
         String path = event.getPath();
@@ -281,10 +311,15 @@ public class Worker {
 	            	
 	            	// processing here
 	            	// alanwu TODO: use the proper function for this
-	            	getDictionaryPartition(passwordhash);
-	            	String result = ProcessHash(passwordhash);
+	            	String result = null;
+	            	List<String> partition = getDictionaryPartition(passwordhash);
+	            	if (partition != null)
+	            	{
+	            		result = ProcessHash(passwordhash, partition);
+	            	}
 
 	            	// now put the result back in my own worker node
+	            	// null means failed
 	            	try {
 						zkc.update(workerPath +mypath, result.getBytes());
 					} catch (KeeperException e) {

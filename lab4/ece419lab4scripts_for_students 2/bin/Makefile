@@ -4,10 +4,12 @@ build:
 	Test.java \
 	JobTracker.java \
 	JobTrackerClientHandle.java \
+	JobTrackerAssigner.java \
 	ClientDriver.java \
 	Worker.java \
 	FileServer.java \
 	FileServerClientHandle.java
+	
 runTracker:
 	java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. JobTracker localhost:8336
 runTest:

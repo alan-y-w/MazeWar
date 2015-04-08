@@ -52,8 +52,7 @@ public class JobTracker implements Runnable {
         // leader election
         jobtracker.checkpath(myIP.getBytes());
         
-        // watch the worker list
-        jobtracker.checkWorker();
+        
         
         System.out.println("Waiting for EnQ");
         while (true) {
@@ -104,10 +103,6 @@ public class JobTracker implements Runnable {
     	
     	if (list.size() != 0)
     	{
-    		// set the first node 
-    		//alanwu TODO: do this properly
-    		//zkc.update(assignPath + "/" + list.get(0), task.getBytes());
-    		
     		// just an estimate, since not all workers can be free
     		int partitionSize = numWords/numWorkers + numWords%numWorkers;
     		int partitionID = 0;
@@ -133,14 +128,13 @@ public class JobTracker implements Runnable {
 						System.out.println(">>> assign task: " + task + "to " + fullAssignPath);
 						zkc.update(fullAssignPath, task.getBytes());
 						partitionID ++;
+						// worker finish -> job tracker clear assign
+						// allow enough time for the worker to up the watch again
+						// avoid the case when the assign is cleared to null, while the user's watch is down
+						// another task is assigned - in this case the worker will miss the task being assigned.
+						// take a 1 second break for the worker to up the watch again.
+						Thread.sleep(1000);
 					}
-					
-					// worker finish -> job tracker clear assign
-					// allow enough time for the worker to up the watch again
-					// avoid the case when the assign is cleared to null, while the user's watch is down
-					// another task is assigned - in this case the worker will miss the task being assigned.
-					// take a 1 second break for the worker to up the watch again.
-					Thread.sleep(1000);
 				}
 				
 				// if 2 works, id = 0, 1, split job in half
@@ -164,7 +158,10 @@ public class JobTracker implements Runnable {
         	// now this is the primary, run as server
         	// start server first
             this.start();
-        	
+            
+            // watch the worker list
+            this.checkWorker();
+            
         	System.out.println("Creating " + myPath);
             Code ret = zkc.create(
                         myPath,         // Path of znode
@@ -172,6 +169,8 @@ public class JobTracker implements Runnable {
                         CreateMode.EPHEMERAL  // Znode type, set to EPHEMERAL.
                         );
             if (ret == Code.OK) System.out.println("***the boss!***");
+            
+            
         }
     }
     
@@ -179,16 +178,19 @@ public class JobTracker implements Runnable {
     {
     	// get current list of workers
     	workerList = zkc.getChildren(workerPath, watcherWorkerRoot);
-    	numWorkers = workerList.size();
-    	System.out.println("workers: " + workerList);
-    	
-    	// set individual watch
     	if (workerList!=null)
     	{
-	    	for (String s: workerList)
-	        {
-	        	zkc.exists(workerPath + "/" + s, watcherWorker);
-	        }
+	    	numWorkers = workerList.size();
+	    	System.out.println("workers: " + workerList);
+	    	
+	    	// set individual watch
+	    	if (workerList!=null)
+	    	{
+		    	for (String s: workerList)
+		        {
+		        	zkc.exists(workerPath + "/" + s, watcherWorker);
+		        }
+	    	}
     	}
     }
 
@@ -234,7 +236,6 @@ public class JobTracker implements Runnable {
         if (type == EventType.NodeDataChanged) {
             System.out.println(path + ": processing finished! now collecting data!");
             
-            
             // remove assigned data
            try {
         	   	byte[] data = zkc.read(path);
@@ -279,13 +280,6 @@ public class JobTracker implements Runnable {
 				e.printStackTrace();
 			}
         	
-        	if (assignedTask!= null)
-        	{
-        		System.out.println("dead worker has task: " + assignedTask);
-        		
-        		//alanwu TODO: re-assign the task
-        	}
-        	
         	// remove the old assign node of the dead worker
         	System.out.println("Dead Worker assign remove!: " + assignPath + workerIndex);
         	try {
@@ -297,6 +291,16 @@ public class JobTracker implements Runnable {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+        	
+        	if (assignedTask!= null)
+        	{
+        		System.out.println("try to reassign task: " + assignedTask);
+        		//alanwu TODO: re-assign the task
+        		// use a separate thread
+        		(new JobTrackerAssigner(assignedTask, assignPath, zkc, watcherWorkerRoot)).start();
+        		
+        	}
+        	
         	// no need to up the watch again
         	//zkc.exists(myPath, watcherElection);
         }

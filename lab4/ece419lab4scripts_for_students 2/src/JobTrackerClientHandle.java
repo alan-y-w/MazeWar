@@ -24,7 +24,6 @@ public class JobTrackerClientHandle implements Runnable{
 			while (( data = (String) in_stream.readObject()) != null) {
 				System.out.println("From Client: " + data);
 				Q.put(data);
-				
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

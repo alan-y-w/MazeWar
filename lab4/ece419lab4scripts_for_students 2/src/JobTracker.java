@@ -21,6 +21,7 @@ public class JobTracker implements Runnable {
 	String myPath = "/tracker";
 	String assignPath = "/assign";
 	String workerPath = "/worker";
+	String StatusPath = "/status";
     ZkConnector zkc;
     Watcher watcherElection; // for election
     Watcher watcherWorkerRoot; // for detecting new worker
@@ -48,11 +49,9 @@ public class JobTracker implements Runnable {
 
         JobTracker jobtracker = new JobTracker(args[0]);   
         JobTracker.myIP = Inet4Address.getLocalHost().getHostAddress();
-
+        jobtracker.createStatusRoot();
         // leader election
         jobtracker.checkpath(myIP.getBytes());
-        
-        
         
         System.out.println("Waiting for EnQ");
         while (true) {
@@ -61,6 +60,7 @@ public class JobTracker implements Runnable {
         	
         	// split the job into tasks
         	// assign task to the assign list
+        	jobtracker.UpdateStatusNode(data, " - ");
         	jobtracker.assignTask(data);
         }
     }
@@ -95,6 +95,172 @@ public class JobTracker implements Runnable {
 				          	      } };
     }
     
+    private void createStatusRoot()
+    {	// String StatusPath = "/status";
+    	Stat stat = zkc.exists(StatusPath, true);
+    	if (stat == null)
+    	{
+		    Code ret = zkc.create(
+		    			StatusPath,         // Path of znode
+		                null,           // Data not needed.
+		                CreateMode.PERSISTENT   // Znode type, set to PERSISTEN
+		                						// if the worker is dead, the job tracker will remove this
+		                );
+		    if (ret == Code.OK) System.out.println("created status!");
+    	}
+    }
+    
+    // number of worker assigned-result
+    // " - " means start job
+    // "0-result" means job done, fail or pass
+    // "number- " means job in progress
+    private void UpdateStatusNode(String passwordHash, String status)
+    {	// String StatusPath = "/status";
+    	String nodePath = StatusPath + "/" + passwordHash;
+    	Stat stat = zkc.exists(nodePath, true);
+    	if (stat == null)
+    	{
+		    Code ret = zkc.create(
+		    			nodePath,         // Path of znode
+		    			status.getBytes(),           // Data not needed.
+		                CreateMode.PERSISTENT   // Znode type, set to PERSISTEN
+		                						// if the worker is dead, the job tracker will remove this
+		                );
+		    if (ret == Code.OK) System.out.println("created status!");
+    	}
+    	else
+    	{
+    		// node exist
+    		try {
+				zkc.update(nodePath, status.getBytes());
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    }
+    
+    private void StatusNodeWorkerUpdateResult(String passwordHash, String result)
+    {
+    	String nodePath = StatusPath + "/" + passwordHash;
+    	byte[] data = null;
+		try {
+			data = zkc.read(nodePath);
+		} catch (KeeperException e1) {
+			// TODO Auto-generatedstatus_string catch block
+			e1.printStackTrace();
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		if (data !=null)
+		{
+    	   	String status_string = new String (data);
+    	   	String[] parsed_status = status_string.split("-");
+    	   	String new_status = parsed_status[0] + "-" + result;
+    	   	try {
+				zkc.update(nodePath, new_status.getBytes());
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+    }
+    
+    private void StatusNodeWorkerPlusOne(String passwordHash)
+    {
+    	String nodePath = StatusPath + "/" + passwordHash;
+    	Stat stat = zkc.exists(nodePath, true);
+    	if (stat != null)
+    	{
+    		byte[] data = null;
+			try {
+				data = zkc.read(nodePath);
+			} catch (KeeperException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			if (data !=null)
+			{
+	    	   	String result = new String (data);
+	    	   	
+	    	   	if (result.equals(" - "))
+	    	   	{
+	    	   		String status = "1- ";
+	    	   		try {
+						zkc.update(nodePath, status.getBytes());
+					} catch (KeeperException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	    	   	}
+	    	   	else
+	    	   	{
+	    	   		String[] cur_status = result.split("-");
+	    	   		int count = Integer.parseInt(cur_status[0]) + 1;
+	    	   		String new_status = count + "-" + cur_status[1];
+	    	   		try {
+						zkc.update(nodePath, new_status.getBytes());
+					} catch (KeeperException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+	    	   	}
+			}
+    	}
+    }
+    
+    private void StatusNodeWorkerMinusOne(String passwordHash)
+    {
+    	String nodePath = StatusPath + "/" + passwordHash;
+    	Stat stat = zkc.exists(nodePath, true);
+    	if (stat != null)
+    	{
+    		byte[] data = null;
+			try {
+				data = zkc.read(nodePath);
+			} catch (KeeperException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			if (data !=null)
+			{
+	    	   	String result = new String (data);
+	    	   	
+    	   		String[] cur_status = result.split("-");
+    	   		int count = Integer.parseInt(cur_status[0]) - 1;
+    	   		String new_status = count + "-" + cur_status[1];
+    	   		try {
+					zkc.update(nodePath, new_status.getBytes());
+				} catch (KeeperException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+    	}
+    }
+    
     // this call should be blocking in case not enough work available
     // user inputs will be queued
     private void assignTask(String password) throws KeeperException, InterruptedException
@@ -127,6 +293,10 @@ public class JobTracker implements Runnable {
 						task = password + "-" + partitionID + "-" +partitionSize;
 						System.out.println(">>> assign task: " + task + "to " + fullAssignPath);
 						zkc.update(fullAssignPath, task.getBytes());
+						
+						// update status
+						StatusNodeWorkerPlusOne(password);
+						
 						partitionID ++;
 						// worker finish -> job tracker clear assign
 						// allow enough time for the worker to up the watch again
@@ -242,6 +412,14 @@ public class JobTracker implements Runnable {
         	   	String result = new String (data);
         	   	System.out.println("<<< retrieve data: " + result);
         	    System.out.println("clear assignment!");
+        	    
+        	    String[] parsed_results = result.split("-");
+        	    StatusNodeWorkerMinusOne(parsed_results[0]);
+        	    
+        	    if (!parsed_results[1].equals(" "))
+        	    {
+        	    	StatusNodeWorkerUpdateResult(parsed_results[0], parsed_results[1]);
+        	    }
 				zkc.update(assignPath + workerIndex, null);
 			} catch (KeeperException e) {
 				// TODO Auto-generated catch block
@@ -298,14 +476,10 @@ public class JobTracker implements Runnable {
         		//alanwu TODO: re-assign the task
         		// use a separate thread
         		(new JobTrackerAssigner(assignedTask, assignPath, zkc, watcherWorkerRoot)).start();
-        		
         	}
-        	
         	// no need to up the watch again
         	//zkc.exists(myPath, watcherElection);
         }
-            
-        
     }
     
     

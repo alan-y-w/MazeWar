@@ -136,7 +136,7 @@ public class Worker {
     	// data - ID - partition size
 		String[] task = data.split("-");
 		String passwordHash = task[0];
-		String result = "NOT_FOUND";
+		String result = " ";
 		// check everything in the partition
 		for (String s : words)
 		{
@@ -156,8 +156,7 @@ public class Worker {
     	List<String> partition = null;
     	try {
 			_outputStream.writeObject(request);
-		    partition =  (ArrayList<String>) _inputStream.readObject();
-		
+		    partition =  (ArrayList<String>) _inputStream.readObject();	
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -317,7 +316,9 @@ public class Worker {
 	            	{
 	            		result = ProcessHash(passwordhash, partition);
 	            	}
-
+	            	
+	            	
+	            	result = passwordhash.split("-")[0] + "-" +result;
 	            	// now put the result back in my own worker node
 	            	// null means failed
 	            	try {

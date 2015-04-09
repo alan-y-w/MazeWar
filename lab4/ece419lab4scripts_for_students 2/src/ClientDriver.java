@@ -18,6 +18,7 @@ public class ClientDriver implements Runnable  {
 	ZkConnector zkc;
     Watcher watcher;
     static String myPath = "/tracker";
+    static String statusPath = "/status";
     static String trackerIP = null;
     
     Socket _clientSocket = null; 
@@ -29,37 +30,97 @@ public class ClientDriver implements Runnable  {
     public static void main(String[] args) throws IOException, KeeperException, InterruptedException
     {
     	// connect to zookeeper
-    	if (args.length != 1) {
-            System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. Test zkServer:clientPort");
+    	if (args.length != 3) {
+            System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. Test zkServer:clientPort job/status password_hash");
             return;
         }
     	
+    	String mode = args[1];
+    	String password = args[2];
+    	
     	// handle user requests
-    	ClientDriver client = new ClientDriver(args[0]);
-    	client.checkUpdate();
-    	client.start();
+    	
+    	ClientDriver client = new ClientDriver(args[0], password);
+    	if (mode.equals("job"))
+    	{
+    		
+    	    client.checkUpdate();
+    	    // no need to wait for user input
+        	// client.start();
+    		client.processInput(password);
+    	}
+    	else if (mode.equals("status"))
+    	{
+    		// checks the result
+    		client.checkStatus(password);
+    	}
+    	else
+    	{
+    		System.out.println("Invalid input, nothing happens");
+    	}
+    }
+    
+    private void checkStatus(String password)
+    {
+    	String nodePath = statusPath + "/" + password;
+    	Stat stat = zkc.exists(nodePath, true);
+        if (stat != null) {              // znode does exist; read data
+        	
+        	byte[] data = null;
+			try {
+				data = zkc.read(nodePath);
+				// delete the node
+				zkc.delete(nodePath);
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			if (data!= null)
+			{
+	        	String data_string = new String(data);
+	        	String [] parsedData = data_string.split("-");
+	        	int count = Integer.parseInt(parsedData[0]);
+	        	String result = parsedData[1];
+	        	if ((count==0) && (!result.equals(" ")) )
+	        	{
+	        		// successfully finished
+	        		System.out.println("Password found: " + result);
+	        	}
+	        	else if ((count==0) && (result.equals(" ")))
+	        	{
+	        		System.out.println("Failed: Password not found");
+	        	}
+	        	else
+	        	{
+	        		System.out.println("Failed: Failed to complete job");
+	        	}
+			}
+        } 
+        else
+        {
+        	// job doesn't exist
+        	System.out.println("Failed: Job not found");
+        }
     }
     
     private void processInput(String userInput)
     {
-    	if (userInput.equalsIgnoreCase("status"))
-    	{
-    		// check status
-    	}
-    	else
-    	{
-    		// comm with job tracker
-    		try {
-				this._outputStream.writeObject(userInput);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-    	}
+		// comm with job tracker
+		try {
+			this._outputStream.writeObject(userInput);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
-    public ClientDriver(String hosts) throws UnknownHostException, KeeperException, InterruptedException {
+    public ClientDriver(String hosts, String passwordHash) throws UnknownHostException, KeeperException, InterruptedException {
     	zkc = new ZkConnector();
+    	
         try {
             zkc.connect(hosts);
         } catch(Exception e) {

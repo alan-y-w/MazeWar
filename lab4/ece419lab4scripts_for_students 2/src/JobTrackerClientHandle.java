@@ -21,10 +21,11 @@ public class JobTrackerClientHandle implements Runnable{
 	public void run() {
 		String data;
 		try {
-			while (( data = (String) in_stream.readObject()) != null) {
+			//while (( data = (String) in_stream.readObject()) != null) {
+				data = (String) in_stream.readObject();
 				System.out.println("From Client: " + data);
 				Q.put(data);
-			}
+			//}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

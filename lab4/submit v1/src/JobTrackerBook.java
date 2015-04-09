@@ -1,0 +1,13 @@
+import java.util.Map;
+
+
+public class JobTrackerBook {
+	public String IP;
+	public Map<String, String> State;
+	
+	public JobTrackerBook(String ip, Map<String, String> state)
+	{
+		IP = ip;
+		State = state;
+	}
+}

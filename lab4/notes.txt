@@ -6,3 +6,8 @@ bin/zkServer.sh start
 bin/zkCli.sh -server localhost:8336
 
 String word = "5ub51d3d"; // 643a5688af1e7aeab0bb036b64b2a0b0
+
+java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. ClientDriver localhost:8336 status 
+java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. ClientDriver localhost:8336 job
+
+java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. ClientDriver localhost:8336 job 643a5688af1e7aeab0bb036b64b2a0b0

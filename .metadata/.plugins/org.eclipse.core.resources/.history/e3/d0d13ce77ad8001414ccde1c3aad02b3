@@ -1,0 +1,6 @@
+
+public class JobTrackerBook {
+	public String IP;
+	public Map<String, String> map;
+
+}

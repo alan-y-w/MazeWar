@@ -1,0 +1,403 @@
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.data.Stat;
+import org.apache.zookeeper.Watcher.Event.EventType;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.math.BigInteger;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Worker {
+    String trackerPath = "/tracker";
+    String workerPath = "/worker";
+    String assignPath = "/assign";
+    String fileServerPath = "/fileServer";
+    int sequenceNum = 0;
+    ZkConnector zkc;
+    Watcher watcherAssign ,watcherFileServer;
+    
+    Socket _clientSocket = null; 
+    ObjectOutputStream _outputStream = null; 
+    ObjectInputStream _inputStream = null;
+    
+    static String FileServerIP = null;
+    
+    String currentRequst = null;
+    
+    public static void main(String[] args) {
+      
+        if (args.length != 1) {
+            System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. Test zkServer:clientPort");
+            return;
+        }
+
+        Worker worker = new Worker(args[0]);   
+ 
+        System.out.println("Sleeping...");
+        try {
+            Thread.sleep(5000);
+        } catch (Exception e) {}
+        // create the worker root node if not already created
+        worker.createWorkerRoot();
+        worker.createAssignRoot(); 
+        
+        worker.getSequenceNumber();
+        worker.createNode();
+        worker.createAssignNode();
+        
+        // set watch for file server
+        worker.checkFileServer();
+        
+        // set watch for assign
+        worker.checkAssign();
+        
+        System.out.println("Sleeping...");
+        while (true) {
+            try{ Thread.sleep(100); } catch (Exception e) {}
+        }
+    }
+
+    public Worker(String hosts) {
+        zkc = new ZkConnector();
+        try {
+            zkc.connect(hosts);
+        } catch(Exception e) {
+            System.out.println("Zookeeper connect "+ e.getMessage());
+        }
+ 
+        watcherAssign = new Watcher() { // Anonymous Watcher
+                            @Override
+                            public void process(WatchedEvent event) {
+                                handleEventAssign(event);
+                        
+                            } };
+        watcherFileServer = new Watcher() { // Anonymous Watcher
+            @Override
+            public void process(WatchedEvent event) {
+                handleEventFileServer(event);
+        
+            } };
+    }
+    
+    private void getSequenceNumber()
+    {
+    	while (zkc.exists(workerPath + "/worker-" + sequenceNum, true) != null)
+    	{
+    		sequenceNum ++;
+    	}
+    }
+    
+    private void connectToServer(String hostName, int portNumber)
+    {
+    	try {
+    		if (_clientSocket!= null)
+    		{
+    			_clientSocket.close();
+    		}
+		 	this._clientSocket = new Socket(hostName, portNumber);
+		 	this._outputStream = new ObjectOutputStream(this._clientSocket.getOutputStream());
+		 	this._inputStream = new ObjectInputStream(this._clientSocket.getInputStream());
+
+        } catch (UnknownHostException e) {
+            System.err.println("Don't know about host " + hostName);
+            //System.exit(1);
+        } catch (IOException e) {
+            System.err.println("Couldn't get I/O for the connection to " +
+                hostName);
+            //System.exit(1);
+        } 
+    }
+    
+    private static String getHash(String word) {
+
+        String hash = null;
+        try {
+            MessageDigest md5 = MessageDigest.getInstance("MD5");
+            BigInteger hashint = new BigInteger(1, md5.digest(word.getBytes()));
+            hash = hashint.toString(16);
+            while (hash.length() < 32) hash = "0" + hash;
+        } catch (NoSuchAlgorithmException nsae) {
+            // ignore
+        }
+        return hash;
+    }
+    
+    private String ProcessHash(String data, List<String> words) {
+    	// data - ID - partition size
+		String[] task = data.split("-");
+		String passwordHash = task[0];
+		String result = " ";
+		// check everything in the partition
+		for (String s : words)
+		{
+			if (getHash(s).equals(passwordHash))
+			{
+				// found a result
+				result = s;
+				break;
+			}
+		}
+    	System.out.println("done!");
+		return result;
+	}
+    
+    private List<String> getDictionaryPartition(String request)
+    {
+    	List<String> partition = null;
+    	try {
+    		synchronized(this)
+    		{
+				_outputStream.writeObject(request);
+				// flag in case die waiting for partition
+				currentRequst = request;
+    		}
+		    partition =  (ArrayList<String>) _inputStream.readObject();	
+		    currentRequst = null;
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	return partition;
+    	
+    }
+    
+    private void PartitionAndRun(String passwordhash)
+    {
+    	String result = null;
+    	List<String> partition = getDictionaryPartition(passwordhash);
+    	if (partition != null)
+    	{
+    		result = ProcessHash(passwordhash, partition);
+    	}
+    	
+    	
+    	result = passwordhash.split("-")[0] + "-" +result;
+    }
+    
+    private void checkAssign() {
+        // check children
+    	Stat stat = zkc.exists(assignPath + "/worker-" + sequenceNum, watcherAssign);
+    }
+    
+    private void checkFileServer() {
+        Stat stat = zkc.exists(fileServerPath, watcherFileServer);
+        if (stat != null) {              // znode does exist; read data
+        	
+        	byte[] data = null;
+			try {
+				data = zkc.read(fileServerPath);
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			if (data!= null)
+			{
+	        	String tempIP = new String(data);
+	        	
+	        	// IP changes, reconnect
+	        	FileServerIP = tempIP;
+	    		System.out.println("Connecting to file server IP: "+ FileServerIP);
+	    		
+	    		// connect to the server
+	    		this.connectToServer(FileServerIP, FileServer.portNum);
+			}
+        } 
+    }
+    
+    private void createNode()
+    {
+	    Code ret = zkc.create(
+	    			workerPath + "/worker-" + sequenceNum,         // Path of znode
+	                null,           // Data not needed.
+	                CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
+	                );
+	    
+	    if (ret == Code.OK) 
+    	{
+	    	System.out.println("created worker!" + assignPath + "/worker-" + sequenceNum);
+    	}
+	    else // there is a race, try getting another sequence number
+	    {
+	    	while (ret!=Code.OK)
+	    	{
+	    		getSequenceNumber();
+	    	}
+	    	
+	    	ret = zkc.create(
+	    			workerPath + "/worker-" + sequenceNum,         // Path of znode
+	                null,           // Data not needed.
+	                CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
+	                );
+	    }
+	}
+    
+    private void createAssignNode()
+    {
+    	Stat stat = zkc.exists(assignPath + "/worker-" + sequenceNum, true);
+    	if (stat == null)
+    	{
+		    Code ret = zkc.create(
+		    			assignPath + "/worker-" + sequenceNum,         // Path of znode
+		                null,           // Data not needed.
+		                CreateMode.PERSISTENT   // Znode type, set to PERSISTEN
+		                						// if the worker is dead, the job tracker will remove this
+		                );
+		    if (ret == Code.OK) System.out.println("created assign!"  + assignPath + "/worker-" + sequenceNum);
+    	}
+    	else
+    	{
+    		//clear garbage
+    		try {
+				zkc.update(assignPath + "/worker-" + sequenceNum, null);
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+	}
+
+    private void createWorkerRoot() {
+        Stat stat = zkc.exists(workerPath, true);
+        if (stat == null) {              // znode doesn't exist; let's try creating it
+            Code ret = zkc.create(
+                        workerPath,         // Path of znode
+                        null,           // Data not needed.
+                        CreateMode.PERSISTENT   // Znode type, set to PERSISTENT.
+                        );
+            if (ret == Code.OK) System.out.println("the worker root created!!");
+        } 
+    }
+    
+    private void createAssignRoot() {
+        Stat stat = zkc.exists(assignPath, true);
+        if (stat == null) {              // znode doesn't exist; let's try creating it
+            Code ret = zkc.create(
+            			assignPath,         // Path of znode
+                        null,           // Data not needed.
+                        CreateMode.PERSISTENT   // Znode type, set to PERSISTENT.
+                        );
+            if (ret == Code.OK) System.out.println("the assign root created!!");
+        } 
+    }
+    
+    
+    
+    private void handleEventAssign(WatchedEvent event) {
+        String path = event.getPath();
+        EventType type = event.getType();
+        String mypath = "/worker-" + sequenceNum;
+        if(path.equalsIgnoreCase(assignPath + mypath)) {
+            if (type == EventType.NodeDataChanged) {
+            	// run the job
+            	byte[] data = null;
+    			try {
+    				data = zkc.read(assignPath +mypath);
+    			} catch (KeeperException e) {
+    				// TODO Auto-generated catch block
+    				e.printStackTrace();
+    			} catch (InterruptedException e) {
+    				// TODO Auto-generated catch block
+    				e.printStackTrace();
+    			}
+    			// read task content
+    			// exclude the case when the job tracker clears task data
+    			if (data!= null)
+    			{
+	            	String passwordhash = new String(data);
+	            	System.out.println("hash received! " + passwordhash);
+	            	
+	            	// processing here
+	            	String result = null;
+	            	/*
+	            	List<String> partition = getDictionaryPartition(passwordhash);
+	            	if (partition != null)
+	            	{
+	            		result = ProcessHash(passwordhash, partition);
+	            	}
+	            	
+	            	result = passwordhash.split("-")[0] + "-" +result;
+	            	*/
+	            	result = PartitionAndRun(passwordhash);
+	            	// now put the result back in my own worker node
+	            	// " " means failed to find
+	            	
+	            	// make sure jobtracker is present
+	            	while(true)
+	            	{
+	            		// write result back only when trackerPath present
+	            		if (zkc.exists(trackerPath, true) != null)
+	            		{
+			            	try {
+								zkc.update(workerPath +mypath, result.getBytes());
+							} catch (KeeperException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+			            	break;
+	            		}
+	            		try {
+							Thread.sleep(1000);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+	            	}
+    			}
+    			else
+    			{
+    				System.out.println("cleared assignment");
+    			}
+    			
+    			// re-enable the watch once done my job
+    			System.out.println("UP THE WATCH");
+            	checkAssign();
+            }
+        }
+    }
+    
+    private void handleEventFileServer(WatchedEvent event) {
+        String path = event.getPath();
+        EventType type = event.getType();
+        if(path.equalsIgnoreCase(fileServerPath)) {
+            if (type == EventType.NodeDeleted) {
+                System.out.println(fileServerPath + " deleted! Try reconnecting!");       
+                checkFileServer(); // try to connect
+            }
+            if ((type == EventType.NodeCreated)) {
+                System.out.println(fileServerPath + " created! connecting!");       
+                //try{ Thread.sleep(5000); } catch (Exception e) {}
+                checkFileServer(); // re-enable the watch
+                
+                // finish where we left off
+                
+            }
+        }
+    }
+
+}

@@ -226,7 +226,7 @@ public abstract class LocalClient extends Client implements Runnable{
 		                    	// sends missile ticks
 		                    	if (ports[i] == 4555)
 		                    	{
-		                    		MissleTickStart();
+		                    		//MissleTickStart();
 		                    	}
 		                    	
 			    				i ++;

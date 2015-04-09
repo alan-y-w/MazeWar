@@ -22,6 +22,8 @@ public class JobTracker implements Runnable {
 	String assignPath = "/assign";
 	String workerPath = "/worker";
 	String StatusPath = "/status";
+	String LogPath = "/log";
+	
     ZkConnector zkc;
     Watcher watcherElection; // for election
     Watcher watcherWorkerRoot; // for detecting new worker
@@ -50,6 +52,8 @@ public class JobTracker implements Runnable {
         JobTracker jobtracker = new JobTracker(args[0]);   
         JobTracker.myIP = Inet4Address.getLocalHost().getHostAddress();
         jobtracker.createStatusRoot();
+        jobtracker.createLogNode();
+        jobtracker.ClearLogNode();
         // leader election
         jobtracker.checkpath(myIP.getBytes());
         
@@ -61,7 +65,7 @@ public class JobTracker implements Runnable {
         	// split the job into tasks
         	// assign task to the assign list
         	jobtracker.UpdateStatusNode(data, " - ");
-        	jobtracker.assignTask(data);
+        	jobtracker.assignTask(data, 0, 0);
         }
     }
 
@@ -109,6 +113,21 @@ public class JobTracker implements Runnable {
 		    if (ret == Code.OK) System.out.println("created status!");
     	}
     }
+    private void createLogNode()
+    {	
+    	Stat stat = zkc.exists(LogPath, true);
+    	if (stat == null)
+    	{
+		    Code ret = zkc.create(
+		    			StatusPath,         // Path of znode
+		                null,           // Data not needed.
+		                CreateMode.PERSISTENT   // Znode type, set to PERSISTEN
+		                						// if the worker is dead, the job tracker will remove this
+		                );
+		    if (ret == Code.OK) System.out.println("created log!");
+    	}
+    }
+    
     
     // number of worker assigned-result
     // " - " means start job
@@ -143,8 +162,50 @@ public class JobTracker implements Runnable {
     	}
     }
     
+    private void UpdateLogNode(String log)
+    {
+    	Stat stat = zkc.exists(LogPath, true);
+    	if (stat != null)
+    	{
+    		// node exist
+    		try {
+				zkc.update(LogPath, log.getBytes());
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    }
+    
+    private void ClearLogNode()
+    {
+    	Stat stat = zkc.exists(LogPath, true);
+    	if (stat != null)
+    	{
+    		// node exist
+    		try {
+				zkc.update(LogPath, null);
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    }
+    
     private void StatusNodeWorkerUpdateResult(String passwordHash, String result)
     {
+    	if (result == null)
+    	{
+    		// happens when file server crashes 
+    		// ignore this case
+    		return;
+    	}
     	String nodePath = StatusPath + "/" + passwordHash;
     	byte[] data = null;
 		try {
@@ -263,15 +324,20 @@ public class JobTracker implements Runnable {
     
     // this call should be blocking in case not enough work available
     // user inputs will be queued
-    private void assignTask(String password) throws KeeperException, InterruptedException
+    private void assignTask(String password, int StartID, int pSize) throws KeeperException, InterruptedException
     {
     	List<String> list = zkc.getChildren(assignPath, watcherWorkerRoot);
     	
     	if (list.size() != 0)
     	{
     		// just an estimate, since not all workers can be free
-    		int partitionSize = numWords/numWorkers + numWords%numWorkers;
-    		int partitionID = 0;
+    		int partitionSize = pSize;
+    		if (pSize == 0)
+    		{
+    			partitionSize = numWords/numWorkers + numWords%numWorkers;
+    		}
+    		
+    		int partitionID = StartID;
     		String task = null;
     		// assign tasks to all workers
     		// need partition size, id, and password hash to crack
@@ -292,8 +358,11 @@ public class JobTracker implements Runnable {
 						// available worker found, assign job
 						task = password + "-" + partitionID + "-" +partitionSize;
 						System.out.println(">>> assign task: " + task + "to " + fullAssignPath);
-						zkc.update(fullAssignPath, task.getBytes());
 						
+						// log my current operation
+						UpdateLogNode(task);
+						
+						zkc.update(fullAssignPath, task.getBytes());
 						// update status
 						StatusNodeWorkerPlusOne(password);
 						
@@ -313,6 +382,8 @@ public class JobTracker implements Runnable {
 				if ((partitionID + 1) * partitionSize >= numWords)
 				{
 					// done assigning tasks
+					// clear my log
+					ClearLogNode();
 					System.out.println("(y)done assigning");
 					break;
 				}
@@ -332,6 +403,37 @@ public class JobTracker implements Runnable {
             // watch the worker list
             this.checkWorker();
             
+            // finish where we left off if there is a crash
+            byte[] log = null;
+            try {
+            	log = zkc.read(LogPath);
+			} catch (KeeperException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
+            if (log != null)
+            {
+            	// this is the format
+            	// 643a5688af1e7aeab0bb036b64b2a0b0-0-132872
+            	String logString = new String (log);
+            	String [] parsedLogString = logString.split(" ");
+            	int next_ID = Integer.parseInt(parsedLogString[1]) + 1;
+            	int partitionSize = Integer.parseInt(parsedLogString[2]);
+            	try {
+					assignTask(parsedLogString[0], next_ID, partitionSize);
+				} catch (KeeperException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+            }
+            
         	System.out.println("Creating " + myPath);
             Code ret = zkc.create(
                         myPath,         // Path of znode
@@ -339,8 +441,6 @@ public class JobTracker implements Runnable {
                         CreateMode.EPHEMERAL  // Znode type, set to EPHEMERAL.
                         );
             if (ret == Code.OK) System.out.println("***the boss!***");
-            
-            
         }
     }
     

@@ -1,0 +1,127 @@
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.data.Stat;
+import org.apache.zookeeper.Watcher.Event.EventType;
+
+import java.io.IOException;
+
+public class Worker {
+    
+    String workerPath = "/worker";
+    String assignPath = "/assign";
+    ZkConnector zkc;
+    Watcher watcherAssign;
+
+    public static void main(String[] args) {
+      
+        if (args.length != 1) {
+            System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. Test zkServer:clientPort");
+            return;
+        }
+
+        Worker worker = new Worker(args[0]);   
+ 
+        System.out.println("Sleeping...");
+        try {
+            Thread.sleep(5000);
+        } catch (Exception e) {}
+        // create the worker root node if not already created
+        worker.createWorkerRoot();
+        worker.createAssignRoot();
+        
+        worker.checkAssign();
+        
+        worker.createAssignNode();
+        worker.createNode();
+        
+        
+        System.out.println("Sleeping...");
+        while (true) {
+            try{ Thread.sleep(5000); } catch (Exception e) {}
+        }
+    }
+
+    public Worker(String hosts) {
+        zkc = new ZkConnector();
+        try {
+            zkc.connect(hosts);
+        } catch(Exception e) {
+            System.out.println("Zookeeper connect "+ e.getMessage());
+        }
+ 
+        watcherAssign = new Watcher() { // Anonymous Watcher
+                            @Override
+                            public void process(WatchedEvent event) {
+                                handleEventAssign(event);
+                        
+                            } };
+    }
+    
+    private void checkAssign() {
+        // check children
+    	
+    	System.out.println("workers: " + zkc.getChildren(workerPath, watcherAssign));
+    }
+    
+    private void createNode()
+    {
+        Code ret = zkc.create(
+        			workerPath + "/worker-",         // Path of znode
+                    null,           // Data not needed.
+                    CreateMode.EPHEMERAL_SEQUENTIAL   // Znode type, set to EPHEMERAL.
+                    );
+        if (ret == Code.OK) System.out.println("created worker!");
+    }
+    
+    private void createAssignNode()
+    {
+        Code ret = zkc.create(
+        			assignPath + "/worker-",         // Path of znode
+                    null,           // Data not needed.
+                    CreateMode.EPHEMERAL_SEQUENTIAL   // Znode type, set to EPHEMERAL.
+                    );
+        if (ret == Code.OK) System.out.println("created worker!");
+    }
+
+    private void createWorkerRoot() {
+        Stat stat = zkc.exists(workerPath, true);
+        if (stat == null) {              // znode doesn't exist; let's try creating it
+            Code ret = zkc.create(
+                        workerPath,         // Path of znode
+                        null,           // Data not needed.
+                        CreateMode.PERSISTENT   // Znode type, set to PERSISTENT.
+                        );
+            if (ret == Code.OK) System.out.println("the worker root created!!");
+        } 
+    }
+    
+    private void createAssignRoot() {
+        Stat stat = zkc.exists(assignPath+ "/worker-, true);
+        if (stat == null) {              // znode doesn't exist; let's try creating it
+            Code ret = zkc.create(
+            			assignPath,         // Path of znode
+                        null,           // Data not needed.
+                        CreateMode.PERSISTENT   // Znode type, set to PERSISTENT.
+                        );
+            if (ret == Code.OK) System.out.println("the assign root created!!");
+        } 
+    }
+    
+    private void handleEventAssign(WatchedEvent event) {
+        String path = event.getPath();
+        EventType type = event.getType();
+        if(path.equalsIgnoreCase(assignPath)) {
+            if (type == EventType.NodeDeleted) {
+            	// check if job is assigned to me
+            	// run the job
+                // re-enable the watch
+            }
+        }
+    }
+
+}

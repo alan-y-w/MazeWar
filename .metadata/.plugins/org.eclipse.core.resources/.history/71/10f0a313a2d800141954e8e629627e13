@@ -1,0 +1,42 @@
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+
+public class JobTrackerClientHandle implements Runnable{
+	ObjectInputStream in_stream;
+	ObjectOutputStream out_stream;
+	private Thread t;
+	
+	public JobTrackerClientHandle(ObjectInputStream inStream, ObjectOutputStream outStream)
+	{
+		in_stream = inStream;
+		out_stream = outStream;
+	}
+
+	@Override
+	public void run() {
+		String data;
+		while (( data = (String) in_stream.readObject()) != null) {
+
+			//System.out.println("From Client: " + packetFromClient.GetClientEvent().GetEventCode());
+
+			MazewarServer._eventQ.offer(packetFromClient);
+
+			/*if (MazewarServer._eventQ.peek() != null) {
+				System.out.println("Top of the Q: " + MazewarServer._eventQ.peek().GetClientEvent().GetEventCode());
+			}*/
+		}
+		
+		System.out.println();
+	}
+	
+	public void start ()
+	{
+		if (t == null)
+		{
+			t = new Thread (this, null);
+			t.start ();
+		}
+	}
+
+}

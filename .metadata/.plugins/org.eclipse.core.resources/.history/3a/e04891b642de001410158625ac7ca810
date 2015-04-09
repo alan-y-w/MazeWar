@@ -1,0 +1,21 @@
+
+public class JobTrackerAssigner implements Runnable {
+	private Thread t;
+	
+	
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public void start ()
+	{
+		if (t == null)
+		{
+			t = new Thread (this);
+			t.start ();
+		}
+	}
+}

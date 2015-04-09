@@ -1,0 +1,23 @@
+import java.util.List;
+
+
+public class JobTrackerAssigner implements Runnable {
+	private Thread t;
+	
+	public JobTrackerAssigner(String task, List<String> listOfAssign, ZkConnector zkc)
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public void start ()
+	{
+		if (t == null)
+		{
+			t = new Thread (this);
+			t.start ();
+		}
+	}
+}

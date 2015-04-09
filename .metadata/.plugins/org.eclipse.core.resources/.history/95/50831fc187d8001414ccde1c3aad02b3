@@ -1,0 +1,79 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.UnknownHostException;
+
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
+
+public class ClientDriver {
+	ZkConnector zkc;
+    Watcher watcher;
+    static String myPath = "/jobTracker";
+    
+    public static void main(String[] args) throws IOException, KeeperException, InterruptedException
+    {
+    	// connect to zookeeper
+    	if (args.length != 1) {
+            System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. Test zkServer:clientPort");
+            return;
+        }
+    	
+    	// handle user requests
+    	ClientDriver client = new ClientDriver(args[0]);
+    	while (true)
+    	{
+    		try{ Thread.sleep(300); } catch (Exception e) {}
+//    		System.out.print(">> ");
+//    		
+//		    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+//		 
+//		    String userInput = null;
+//		    
+//		    userInput = br.readLine();
+//		    
+//		    System.out.println(userInput);
+    	}
+    }
+    
+    public ClientDriver(String hosts) throws UnknownHostException, KeeperException, InterruptedException {
+        zkc = new ZkConnector();
+        try {
+            zkc.connect(hosts);
+        } catch(Exception e) {
+            System.out.println("Zookeeper connect "+ e.getMessage());
+        }
+ 
+        watcher = new Watcher() { // Anonymous Watcher
+                            @Override
+                            public void process(WatchedEvent event) {
+                                handleEvent(event);
+                        
+                            } };
+        zkc.exists(myPath, watcher);
+                               
+    }
+    
+    private void handleEvent(WatchedEvent event) {
+        String path = event.getPath();
+        EventType type = event.getType();
+        if(path.equalsIgnoreCase(myPath)) {
+            if (type == EventType.NodeDeleted) {
+                System.out.println(myPath + " deleted! Reestablish connection");
+                // re-enable the watch
+                //checkpath(); // try to become the Primary
+                // need to reconnect the service
+                zkc.exists(myPath, watcher);
+            }
+            if (type == EventType.NodeCreated) {
+                System.out.println(myPath + " created!");       
+                try{ Thread.sleep(5000); } catch (Exception e) {}
+                // re-enable the watch
+                //checkpath(); // re-enable the watch
+                zkc.exists(myPath, watcher);
+            }
+        }
+    }
+}

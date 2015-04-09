@@ -1,0 +1,94 @@
+import java.net.Inet4Address;
+import java.net.UnknownHostException;
+
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.data.Stat;
+
+public class JobTracker {
+	
+    ZkConnector zkc;
+    Watcher watcher;
+    static String myPath = "/jobTracker";
+    
+    public static void main(String[] args) throws UnknownHostException, KeeperException, InterruptedException {
+    	
+    	
+        if (args.length != 1) {
+            System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. Test zkServer:clientPort");
+            return;
+        }
+        
+        
+
+        JobTracker jobtracker = new JobTracker(args[0]);   
+        
+        // attempt to be the primary
+        jobtracker.checkpath();
+        
+        // do stuff
+        while (true) {
+            try{ Thread.sleep(5000); } catch (Exception e) {}
+        }
+        
+        // set my IP
+        String myIP = Inet4Address.getLocalHost().getHostAddress();
+        jobtracker.zkc.update(myPath, myIP.getBytes());
+        
+    }
+    
+    
+    public JobTracker(String hosts) throws UnknownHostException, KeeperException, InterruptedException {
+        zkc = new ZkConnector();
+        try {
+            zkc.connect(hosts);
+        } catch(Exception e) {
+            System.out.println("Zookeeper connect "+ e.getMessage());
+        }
+ 
+        watcher = new Watcher() { // Anonymous Watcher
+                            @Override
+                            public void process(WatchedEvent event) {
+                                handleEvent(event);
+                        
+                            } };
+                               
+    }
+    
+    private void handleEvent(WatchedEvent event) {
+        String path = event.getPath();
+        EventType type = event.getType();
+        if(path.equalsIgnoreCase(myPath)) {
+            if (type == EventType.NodeDeleted) {
+                System.out.println(myPath + " deleted! Let's go!");       
+                checkpath(); // try to become the Primary
+            }
+            if (type == EventType.NodeCreated) {
+                System.out.println(myPath + " created!");       
+                try{ Thread.sleep(5000); } catch (Exception e) {}
+                checkpath(); // re-enable the watch
+            }
+        }
+    }
+    
+    // create the znode
+    private void checkpath() {
+        Stat stat = zkc.exists(myPath, watcher);
+        if (stat == null) {              // znode doesn't exist; let's try creating it
+            System.out.println("Creating " + myPath);
+            Code ret = zkc.create(
+                        myPath,         // Path of znode
+                        null,           // Data not needed.
+                        CreateMode.EPHEMERAL   // Znode type, set to EPHEMERAL.
+                        );
+            if (ret == Code.OK) System.out.println("the boss!");
+        } 
+    }
+    
+    
+
+}

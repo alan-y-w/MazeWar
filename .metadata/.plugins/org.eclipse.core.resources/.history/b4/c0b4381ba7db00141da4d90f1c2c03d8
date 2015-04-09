@@ -1,0 +1,48 @@
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+
+public class FileServerClientHandle implements Runnable{
+	ObjectInputStream in_stream;
+	ObjectOutputStream out_stream;
+	FileReader fr;
+	Thread t;
+	
+	public FileServerClientHandle(ObjectInputStream inStream, ObjectOutputStream outStream, FileReader fileReader)
+	{
+		in_stream = inStream;
+		out_stream = outStream;
+		fr = fileReader;
+	}
+
+	@Override
+	public void run() {
+		String data;
+		try {
+			while (( data = (String) in_stream.readObject()) != null) {
+				System.out.println("From Client: " + data);
+				
+				// alanwu TODO: send partition
+				out_stream.writeObject("HERE IS THE PARTITION");
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			System.out.println("Client disconnected!");
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void start ()
+	{
+		if (t == null)
+		{
+			t = new Thread (this);
+			t.start ();
+		}
+	}
+}

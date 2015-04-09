@@ -1,0 +1,29 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
+
+public class ClientDriver {
+	ZkConnector zkc;
+    Watcher watcher;
+    
+    public static void main(String[] args) throws IOException
+    {
+    
+    	while (true)
+    	{
+    		System.out.print("enter command: ");
+    		
+    		//  open up standard input
+    	    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+    	 
+    	    String userInput = null;
+    	    
+    	    userInput = br.readLine();
+    	    
+    	    System.out.println(userInput);
+    	}
+    }
+}
